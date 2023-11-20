@@ -1,0 +1,29 @@
+pkgname=remotepad
+pkgver=0.0.1
+pkgrel=1
+pkgdesc='A tool for forwarding evdev inputs over ssh'
+arch=('any')
+license=('GPL3')
+depends=(
+    'python-evdev'
+)
+source=(
+    'remotepad-client.py'
+    'remotepad-server.py'
+    'powkiddy-mapper.py'
+)
+sha256sums=(
+    'SKIP'
+    'SKIP'
+    'SKIP'
+)
+
+package() {
+    mkdir -p "${pkgdir}/usr/bin/"
+
+    cp "$srcdir/remotepad-client.py" "${pkgdir}/usr/bin/remotepad-client"
+    cp "$srcdir/remotepad-server.py" "${pkgdir}/usr/bin/remotepad-server"
+    cp "$srcdir/powkiddy-mapper.py"  "${pkgdir}/usr/bin/powkiddy-mapper"
+
+    chmod +x "${pkgdir}/usr/bin/"{remotepad-client,remotepad-server,powkiddy-mapper}
+}

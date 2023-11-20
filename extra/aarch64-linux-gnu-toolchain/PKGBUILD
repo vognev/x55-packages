@@ -1,0 +1,226 @@
+# Maintainer: $USER
+pkgname=aarch64-linux-gnu-toolchain
+pkgver=12.1.0
+pkgrel=1
+pkgdesc='X55 AArch64 toolchain'
+arch=($CARCH)
+license=(GPL)
+options=(!emptydirs !strip)
+
+_ver_binutils="2.38"
+_ver_kernel="6.4"
+_ver_gcc="12.1.0"
+_ver_glibc="2.35"
+
+makedepends=(
+    python
+    rsync
+    texinfo
+    bc
+)
+
+source=(
+    "https://ftp.gnu.org/gnu/binutils/binutils-${_ver_binutils}.tar.xz"
+    "https://www.kernel.org/pub/linux/kernel/v${_ver_kernel:0:1}.x/linux-${_ver_kernel}.tar.xz"
+    "https://ftp.gnu.org/gnu/gcc/gcc-${_ver_gcc}/gcc-${_ver_gcc}.tar.xz"
+    "https://ftp.gnu.org/gnu/glibc/glibc-${_ver_glibc}.tar.xz"
+)
+
+md5sums=(
+    '6e39cad1bb414add02b5b1169c18fdc5'
+    'bb65b2232cf596e7044c56a7c4205f51'
+    'ed45b55ee859ada4b25a1e76e0c4d966'
+    'dd571c67d85d89d7f60b854a4e207423'
+)
+
+target=aarch64-linux-gnu
+
+prepare() {
+    cd "${srcdir}/gcc-${_ver_gcc}"
+
+    sed -e '/lp64=/s/lib64/lib/' -i.orig gcc/config/aarch64/t-aarch64-linux
+
+    echo "
+#undef STANDARD_STARTFILE_PREFIX_1
+#undef STANDARD_STARTFILE_PREFIX_2
+#define STANDARD_STARTFILE_PREFIX_1 \"/usr/${target}/lib/\"
+" >> gcc/config/linux.h
+}
+
+build() {
+    local toolchain="${srcdir}/toolchain"
+
+    rm -rf "${srcdir}/toolchain" && mkdir "${srcdir}/toolchain"
+
+    export CFLAGS=${CFLAGS/-Werror=format-security/}
+    export CXXFLAGS=${CXXFLAGS/-Werror=format-security/}
+    export PATH="${toolchain}/usr/bin:${PATH}"
+
+    _opts_binutils=(
+        --build=$CHOST --host=$CHOST --target=${target}
+        --datarootdir="/usr/${target}/share"
+        --libdir="/usr/${target}/lib"
+        --prefix=/usr
+
+        --with-lib-path="/usr/${target}/lib"
+        --with-sysroot="${toolchain}"
+
+        --disable-multilib
+        --disable-nls
+        --disable-werror
+        --enable-gold
+        --enable-ld=default
+        --with-gnu-as
+        --with-gnu-ld
+    )
+
+    _opts_gcc=(
+        --build=$CHOST --host=$CHOST --target=${target}
+        --oldincludedir="/usr/${target}/include"
+        --includedir="/usr/${target}/include"
+        --datarootdir="/usr/${target}/share"
+        --libexecdir="/usr/${target}/lib"
+        --libdir="/usr/${target}/lib"
+        --prefix=/usr
+
+        --with-native-system-header-dir="/usr/${target}/include"
+        --with-glibc-version=${_ver_glibc}
+        --with-sysroot="${toolchain}"
+
+        --with-cpu=cortex-a55
+        --enable-__cxa_atexit
+        --enable-default-pie
+        --enable-default-ssp
+        --enable-lto
+        --enable-languages=c,c++
+        --disable-multilib
+        --disable-nls
+        --disable-werror
+    )
+
+    _opts_glibc=(
+        --build=$CHOST --host=${target}
+        --libdir="/usr/${target}/lib"
+        --libexecdir="/usr/${target}/lib"
+        --prefix="/usr/${target}"
+        --with-headers="${toolchain}/usr/${target}/include"
+
+        --disable-debug
+        --disable-multilib
+        --disable-profile
+        --disable-werror
+        --enable-crypt
+        --enable-kernel=6.4.0
+        --enable-obsolete-rpc
+        --enable-shared
+        --without-cvs
+        --without-gd
+        --disable-nscd
+        libc_cv_slibdir="/usr/${target}/lib"
+        libc_cv_rtlddir="/usr/${target}/lib"
+        libc_cv_rootsbindir="/usr/${target}/sbin"
+    )
+
+    msg "Binutils"
+    mkdir -p "${srcdir}/build-binutils" && cd "${srcdir}/build-binutils"
+    "${srcdir}/binutils-${_ver_binutils}"/configure "${_opts_binutils[@]}"
+    make && make DESTDIR="${toolchain}" install
+
+    # ${target}-ld --verbose | grep DIR
+    # exit 1
+
+    msg "Linux Kernel Headers"
+    cd  "${srcdir}/linux-${_ver_kernel}"
+    make ARCH=arm64 INSTALL_HDR_PATH="${toolchain}/usr/${target}" \
+         headers_install
+
+    msg "C/C++ Compilers"
+    mkdir -p "${srcdir}/bootstrap-gcc" && cd "${srcdir}/bootstrap-gcc"
+    "${srcdir}/gcc-${_ver_gcc}"/configure "${_opts_gcc[@]}"
+    make all-gcc && make DESTDIR="${toolchain}" install-gcc
+
+    # ${target}-gcc -print-search-dirs
+    # exit 1
+
+    msg "Standard C Library Headers and Startup Files"
+    mkdir -p "${srcdir}/bootstrap-glibc" && cd "${srcdir}/bootstrap-glibc"
+    CFLAGS="-U_FORTIFY_SOURCE -O2" CPPFLAGS="-U_FORTIFY_SOURCE -O2" \
+        "${srcdir}/glibc-${_ver_glibc}"/configure "${_opts_glibc[@]}"
+
+    make DESTDIR="${toolchain}" install-bootstrap-headers=yes install-headers
+    make csu/subdir_lib && install csu/{Scrt1.o,crt1.o,crti.o,crtn.o} "${toolchain}/usr/${target}/lib"
+    ${target}-gcc -nostdlib -nostartfiles -shared -x c /dev/null -o "${toolchain}/usr/${target}/lib/libc.so"
+    touch "${toolchain}/usr/${target}/include/gnu/stubs.h"
+
+    msg "Compiler Support Library"
+    mkdir -p "${srcdir}/build-gcc" && cd "${srcdir}/build-gcc"
+    "${srcdir}/gcc-${_ver_gcc}"/configure "${_opts_gcc[@]}"
+    make all-target-libgcc && make DESTDIR="${toolchain}" install-target-libgcc
+
+    msg "Standard C Library & the rest of Glibc"
+    mkdir -p "${srcdir}/build-glibc" && cd "${srcdir}/build-glibc"
+    CFLAGS="-U_FORTIFY_SOURCE -O2" CPPFLAGS="-U_FORTIFY_SOURCE -O2" \
+        "${srcdir}/glibc-${_ver_glibc}"/configure "${_opts_glibc[@]}"
+    make && make install_root="${toolchain}" install
+
+    msg "Standard C++ Library & the rest of GCC"
+    cd  "${srcdir}/build-gcc"
+    make all && make DESTDIR="${toolchain}" install
+}
+
+package() {
+    export PATH="${toolchain}/usr/bin:$PATH"
+    local toolchain="${srcdir}/toolchain"
+
+    find "${toolchain}" -type f -perm -u+w 2>/dev/null | while read -r path; do
+        local info="$(LC_ALL=C readelf -h "$path" 2>/dev/null)"
+        local stripflags
+        local strip
+        local ar
+
+        case "${info}" in
+            *Machine:*AArch64*)
+                strip="${target}-strip"
+                ar="${target}-ar"
+                ;;
+            *)
+                strip="strip"
+                ar="ar"
+                ;;
+        esac
+
+        case "${info}" in
+            *Type:*DYN*)  # STRIP_SHARED
+                stripflags="-S"
+                ;;
+            *Type:*EXEC*) # STRIP_BINARIES
+                stripflags=""
+                ;;
+            *Type:*REL*)
+                if ${ar} t "$path" &>/dev/null; then
+                    # STRIP_STATIC
+                    stripflags="-S"
+                elif [[ $binary = *'.ko' || $binary = *'.o' ]]; then
+                    # STRIP_SHARED
+                    stripflags="-S"
+                else
+                    continue
+                fi
+                ;;
+            *)
+                continue
+        esac
+
+        $strip $stripflags "${path}"
+    done
+
+    install -d "${pkgdir}"/usr/lib
+    ln -s ../${target}/lib/ld-linux-aarch64.so.1 "${pkgdir}"/usr/lib/
+
+    install -d "${pkgdir}"/etc/profile.d
+    install -Dm755 /dev/stdin "${pkgdir}"/etc/profile.d/${target}-path.sh <<EOF
+append_path '/usr/${target}/bin'
+EOF
+
+    cp -ar "${srcdir}/toolchain/"* "${pkgdir}/"
+}
