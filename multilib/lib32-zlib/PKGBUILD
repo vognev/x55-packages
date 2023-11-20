@@ -1,0 +1,45 @@
+# Maintainer: $USER
+
+_name=zlib
+pkgname=lib32-$_name
+pkgver=1.3
+pkgrel=1
+pkgdesc='Compression library implementing the deflate compression method found in gzip and PKZIP (32-bit)'
+arch=(aarch64)
+license=(Zlib)
+url="https://www.zlib.net/"
+depends=(
+  lib32-sysroot
+  $_name=1:$pkgver
+)
+provides=(libz.so)
+
+source=(
+  https://github.com/madler/zlib/releases/download/v$pkgver/$_name-$pkgver.tar.xz
+)
+
+md5sums=(
+  'b49e70aacafacfceb1107943497f5545'
+)
+
+build() {
+  export PKG_CONFIG_PATH='/usr/arm-linux-gnueabihf/lib/pkgconfig'
+  export CHOST=arm-linux-gnueabihf
+  export CFLAGS="${CFLAGS32}"
+
+  cd $_name-$pkgver
+  ./configure \
+    --prefix=/usr/arm-linux-gnueabihf \
+    --libdir=/usr/arm-linux-gnueabihf/lib
+  make
+}
+
+check() {
+  make test -C $_name-$pkgver
+}
+
+package() {
+  make install DESTDIR="$pkgdir" -C $_name-$pkgver
+
+  # rm -rf "$pkgdir"/usr/arm-linux-gnueabihf/{include,share,bin}
+}

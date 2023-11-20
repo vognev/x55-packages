@@ -1,0 +1,93 @@
+# Maintainer: $USER
+
+pkgbase=lib32-dbus
+pkgname=(
+  lib32-dbus
+)
+pkgver=1.14.10
+pkgrel=1
+pkgdesc="Freedesktop.org message bus system - 32-bit"
+url="https://wiki.freedesktop.org/www/Software/dbus/"
+arch=(aarch64)
+license=(
+  GPL
+  custom
+)
+depends=(
+  dbus
+  lib32-systemd
+)
+makedepends=(
+  autoconf-archive
+  git
+  lib32-expat
+  lib32-glib2
+  systemd
+)
+source=(
+  "git+https://gitlab.freedesktop.org/dbus/dbus.git#tag=dbus-$pkgver"
+)
+b2sums=('SKIP')
+
+prepare() {
+  cd dbus
+  NOCONFIGURE=1 ./autogen.sh
+}
+
+build() {
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+  export PKG_CONFIG_LIBDIR="/usr/${CHOST}/lib/pkgconfig"
+
+  # todo: disable tests too
+
+  local configure_options=(
+    --prefix=/usr/${CHOST}
+    --sysconfdir=/etc
+    --localstatedir=/var
+    --libdir=/usr/${CHOST}/lib
+    --libexecdir=/usr/${CHOST}/lib/dbus-1.0
+    --runstatedir=/run
+    --with-console-auth-dir=/run/console/
+    --with-dbus-user=dbus
+    --with-system-pid-file=/run/dbus/pid
+    --with-system-socket=/run/dbus/system_bus_socket
+    --with-systemdsystemunitdir=/usr/lib/systemd/system
+    --enable-inotify
+    --disable-libaudit
+    # --disable-systemd
+    --enable-systemd
+    --enable-user-session
+    --disable-xml-docs
+    --disable-doxygen-docs
+    --disable-ducktype-docs
+    --disable-static
+    --without-x
+  )
+
+  cd dbus
+  ./configure "${configure_options[@]}"
+  make
+}
+
+package_lib32-dbus() {
+  depends+=(
+    libsystemd.so
+  )
+  provides=(
+    lib32-libdbus
+    libdbus-1.so
+  )
+  conflicts=(lib32-libdbus)
+  replaces=(lib32-libdbus)
+
+  DESTDIR="$pkgdir" make -C dbus install
+
+  rm -r "$pkgdir"/{etc,var,usr/lib}
+  rm -r "$pkgdir"/usr/arm-linux-gnueabihf/{bin,share}
+}
+
+# vim:set sw=2 sts=-1 et:

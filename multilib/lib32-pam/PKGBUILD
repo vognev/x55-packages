@@ -1,0 +1,64 @@
+# Maintainer: $USER
+
+pkgname=lib32-pam
+pkgver=1.5.3
+pkgrel=1
+pkgdesc='Pluggable Authentication Modules'
+arch=(aarch64)
+url=http://linux-pam.org
+license=(GPL2)
+depends=(
+  lib32-libtirpc
+  pam
+)
+makedepends=(
+  docbook-xml
+  docbook-xsl
+  git
+  lib32-flex
+  w3m
+)
+_tag=v$pkgver
+source=(git+https://github.com/linux-pam/linux-pam.git#tag=${_tag})
+b2sums=('SKIP')
+options=(!emptydirs)
+
+pkgver() {
+  cd linux-pam
+
+  git describe --tags | sed 's/^v//'
+}
+
+prepare() {
+  cd linux-pam
+  ./autogen.sh
+}
+
+build() {
+  cd linux-pam
+
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+  export PKG_CONFIG_LIBDIR="/usr/${CHOST}/lib/pkgconfig"
+
+  ./configure \
+    --prefix=/usr/${CHOST} \
+    --libdir=/usr/${CHOST}/lib \
+    --sbindir=/usr/${CHOST}/bin \
+    --includedir=/usr/${CHOST}/include/security \
+    --sysconfdir=/etc \
+    --enable-logind \
+    --disable-db \
+    --disable-doc
+  make
+}
+
+package() {
+  make DESTDIR="${pkgdir}" -C linux-pam install
+  rm -rf "${pkgdir}"{/etc,/usr/arm-linux-gnueabihf/{etc,bin,share}}
+}
+
+# vim: ts=2 sw=2 et:

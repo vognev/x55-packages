@@ -1,0 +1,70 @@
+# Maintainer: $USER
+
+pkgname=lib32-icu
+pkgver=74.2
+pkgrel=1
+pkgdesc="International Components for Unicode library (32 bit)"
+arch=(aarch64)
+url="https://icu.unicode.org"
+license=('custom:icu')
+depends=('lib32-sysroot' 'icu')
+makedepends=('python')
+provides=(libicu{data,i18n,io,test,tu,uc}.so)
+source=(https://github.com/unicode-org/icu/releases/download/release-${pkgver//./-}/icu4c-${pkgver//./_}-src.tgz
+        ICU-22132.patch
+        LICENSE)
+md5sums=('342c8bebe704ec96df8bd6bd7040af1c'
+         '7e501a2e7d14ce94b843e6853d96e4c2'
+         '80c2cf39ad8ae12b9b9482a1737c6650')
+
+prepare() {
+  cd icu/source
+  # Required fix for thunderbird 115 to show Calendar and sidebar properly
+  # https://bugzilla.mozilla.org/show_bug.cgi?id=1843007
+  # https://unicode-org.atlassian.net/browse/ICU-22132
+  patch -Np1 < "../../ICU-22132.patch"
+}
+
+build() {
+  PKG_CONFIG_PATH='/usr/arm-linux-gnueabihf/lib/pkgconfig'
+  CHOST=arm-linux-gnueabihf
+  CFLAGS="${CFLAGS32}"
+  CXXFLAGS="${CXXFLAGS32}"
+
+  # Avoid a test suite failure with GCC 13
+  # https://www.mail-archive.com/debian-bugs-dist@lists.debian.org/msg1936508.html
+  CXXFLAGS+=" -fexcess-precision=fast"
+
+  cd icu/source
+  ./configure --prefix=/usr/$CHOST \
+  --host=$CHOST --build=$CHOST \
+  --with-library-bits=32 \
+	--libdir=/usr/$CHOST/lib \
+	--sysconfdir=/usr/$CHOST/etc \
+	--mandir=/usr/$CHOST/share/man \
+	--sbindir=/usr/$CHOST/bin \
+  --with-data-packaging=static \
+  --without-extras \
+  --disable-tests
+  make
+}
+
+check() {
+  cd icu/source
+  make check
+}
+
+package() {
+  cd icu/source
+  make DESTDIR="${pkgdir}" install
+  # rm -r "${pkgdir}/usr"/{include,share}
+
+  # keep icu-config-32
+  # find "${pkgdir}/usr/bin" -type f -not -name icu-config -delete
+  # mv "${pkgdir}/usr/bin"/icu-config{,-32}
+
+  # Install license
+  # https://unicode-org.atlassian.net/browse/ICU-22601
+  # install -Dm644 "${srcdir}"/icu/LICENSE "${pkgdir}"/usr/share/licenses/${pkgname}/LICENSE
+  # install -Dm644 "${srcdir}"/LICENSE     "${pkgdir}"/usr/share/licenses/${pkgname}/LICENSE
+}

@@ -1,0 +1,37 @@
+# Maintainer: $USER
+
+pkgname=lib32-libglvnd
+pkgver=1.7.0
+pkgrel=1
+pkgdesc="The GL Vendor-Neutral Dispatch library"
+arch=('aarch64')
+url="https://gitlab.freedesktop.org/glvnd/libglvnd"
+license=('custom:BSD-like')
+makedepends=('lib32-libx11' 'lib32-libxext' 'lib32-xorgproto' 'python' 'meson')
+provides=('lib32-libgl' 'lib32-libegl' 'lib32-libgles')
+provides+=(libEGL.so libGL.so libGLESv2.so libGLX.so libGLdispatch.so libOpenGL.so)
+source=("https://gitlab.freedesktop.org/glvnd/libglvnd/-/archive/v$pkgver/libglvnd-v$pkgver.tar.gz")
+sha512sums=('7b6eb8e075b48f1d915b892044adc3260547d74ed61d1e2fa6c5f0f8c3527754abea314181e088626d4fd58bb221085e5288c4758d828e171c7dcb0e4991745c')
+
+build() {
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+  export PKG_CONFIG_LIBDIR="/usr/${CHOST}/lib/pkgconfig"
+
+  arch-meson libglvnd-v$pkgver build \
+    --prefix=/usr/${CHOST} \
+    --libdir=/usr/${CHOST}/lib \
+    -D gles1=false
+
+  meson compile -C build
+}
+
+package() {
+  # lib32-libglvnd needs lib32-mesa for indirect rendering
+  depends=('lib32-libxext' 'libglvnd' 'lib32-mesa' 'lib32-opengl-driver')
+
+  meson install -C build --destdir "$pkgdir"
+}

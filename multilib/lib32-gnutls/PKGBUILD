@@ -1,0 +1,57 @@
+# Maintainer: $USER
+
+pkgname=lib32-gnutls
+pkgver=3.8.2
+pkgrel=1
+pkgdesc="A library which provides a secure layer over a reliable transport layer (32-bit)"
+arch=('aarch64')
+license=('GPL3' 'LGPL2.1')
+url="https://gnutls.org/"
+depends=('lib32-nettle' 'libnettle.so' 'libhogweed.so'
+         'lib32-p11-kit' 'libp11-kit.so' 'lib32-libtasn1' 'libtasn1.so'
+         'lib32-libidn2' 'gnutls' 'lib32-brotli' 'lib32-zstd')
+makedepends=()
+provides=('libgnutls.so' 'libgnutlsxx.so')
+source=(https://www.gnupg.org/ftp/gcrypt/gnutls/v${pkgver%.*}/gnutls-${pkgver}.tar.xz)
+sha256sums=('e765e5016ffa9b9dd243e363a0460d577074444ee2491267db2e96c9c2adef77')
+
+build() {
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+  export PKG_CONFIG_LIBDIR="/usr/${CHOST}/lib/pkgconfig"
+
+  cd gnutls-${pkgver}
+
+  local confopts=(
+    --prefix=/usr/${CHOST}
+    --libdir=/usr/${CHOST}/lib
+    --includedir=/usr/${CHOST}/include
+    --bindir=/usr/bin
+    --build=${CHOST}
+    --with-zlib
+    --with-included-unistring
+    --disable-year2038
+    --disable-static
+    --disable-valgrind-tests
+    # --without-p11-kit
+  )
+
+  ./configure "${confopts[@]}"
+  make
+}
+
+package() {
+  cd gnutls-${pkgver}
+  make DESTDIR="${pkgdir}" install
+
+  rm -rf "${pkgdir}"/usr/arm-linux-gnueabihf/share
+
+  # lib32-p11-kit tests need a 32-bit p11tool
+  mv "$pkgdir"/usr/bin/p11tool{,-32}
+  find "$pkgdir"/usr/bin -type f -not -name '*-32' -delete
+}
+
+# vim:set sw=2 sts=-1 et:

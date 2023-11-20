@@ -1,0 +1,231 @@
+# Maintainer: $USER
+
+pkgbase=rust
+pkgname=(
+  rust
+  lib32-rust-libs
+  rust-src
+)
+epoch=1
+pkgver=1.75.0
+pkgrel=1
+pkgdesc="Systems programming language focused on safety, speed and concurrency"
+url=https://www.rust-lang.org/
+arch=(aarch64)
+license=(
+  Apache
+  MIT
+)
+options=(
+  !debug
+  !emptydirs
+  !lto
+  !strip
+)
+depends=(
+  curl
+  gcc
+  gcc-libs
+  libssh2
+  llvm-libs
+)
+makedepends=(
+  lib32-sysroot
+  cmake
+  libffi
+  lld
+  llvm
+  ninja
+  perl
+  python
+)
+
+source=(
+  "https://static.rust-lang.org/dist/rustc-$pkgver-src.tar.gz"
+  "https://static.rust-lang.org/dist/2023-11-16/rust-std-1.74.0-aarch64-unknown-linux-gnu.tar.xz"
+  "https://static.rust-lang.org/dist/2023-11-16/rustc-1.74.0-aarch64-unknown-linux-gnu.tar.xz"
+  "https://static.rust-lang.org/dist/2023-11-16/cargo-1.74.0-aarch64-unknown-linux-gnu.tar.xz"
+  0001-bootstrap-Change-libexec-dir.patch
+  0002-bootstrap-Change-bash-completion-dir.patch
+  0003-compiler-Change-LLVM-targets.patch
+  0004-compiler-Use-wasm-ld-for-wasm-targets.patch
+)
+noextract=(
+  "rust-std-1.74.0-aarch64-unknown-linux-gnu.tar.xz"
+  "rustc-1.74.0-aarch64-unknown-linux-gnu.tar.xz"
+  "cargo-1.74.0-aarch64-unknown-linux-gnu.tar.xz"
+)
+b2sums=('6877d5bc89335be051639d21f723c1b596d83e837781ac691795ad3abf999e18c4fb07a2a9048da9ea860b3c4777cb2d49db7dc5081085da5f10888eebe0224e'
+        'SKIP' 'SKIP' 'SKIP'
+        'a55e8eca7d700f4dad9a09030cab97a5d7b28a56d4dfb03d75b09f66d04c05907a8e81df95af21f0caad12dcad17a292de55a4eb5eedf4f1a6d4a5f8dd053c83'
+        'd3050f44d166530c65f98f0546fbbfe1f924789db66a9982d5e6591029355da6ce0a471c98bab153bcdff4ebe9cd68622e2b697694c880a875e2b5ca8f49822b'
+        '0a1d5e8709a73a4f0825231362c1cb0f6b4fdc72d0082f222da6479e6075e945fb041b43a57fbe2844247c9a2f148d335c723bdf0d92083c62f6c19f56ce5c0c'
+        '6a7d2ca75109de1a4b2aedc16f026bb97eaf00fa1ade67da92a48ce47b3d71a6403a349f73b3b4fb02dfde34bcbd6108510d7dd6f6a98eaf439521ab2205e52c')
+
+prepare() {
+  cd rustc-$pkgver-src
+
+  mkdir -p build/cache/2023-11-16
+  ln -sf \
+    "$srcdir"/rust-std-1.74.0-aarch64-unknown-linux-gnu.tar.xz \
+    "$srcdir"/rustc-1.74.0-aarch64-unknown-linux-gnu.tar.xz \
+    "$srcdir"/cargo-1.74.0-aarch64-unknown-linux-gnu.tar.xz \
+    build/cache/2023-11-16/
+
+  # Patch bootstrap so that rust-analyzer-proc-macro-srv
+  # is in /usr/lib instead of /usr/libexec
+  patch -Np1 -i ../0001-bootstrap-Change-libexec-dir.patch
+
+  # Put bash completions where they belong
+  patch -Np1 -i ../0002-bootstrap-Change-bash-completion-dir.patch
+
+  # Use our *-pc-linux-gnu targets, making LTO with clang simpler
+  # patch -Np1 -i ../0003-compiler-Change-LLVM-targets.patch
+
+  # Use our wasm-ld
+  # patch -Np1 -i ../0004-compiler-Use-wasm-ld-for-wasm-targets.patch
+
+  cat >config.toml <<END
+profile = "user"
+change-id = 116881
+
+[llvm]
+link-shared = true
+
+[build]
+target = [
+  "aarch64-unknown-linux-gnu",
+  "arm-unknown-linux-gnueabihf",
+]
+
+locked-deps = true
+vendor = true
+tools = [
+  "cargo",
+  "clippy",
+  "rustdoc",
+  "rustfmt",
+  "rust-analyzer-proc-macro-srv",
+  "analysis",
+  "src",
+  "rust-demangler",
+]
+sanitizers = true
+profiler = true
+
+# Generating docs fails with the wasm32-* targets
+docs = false
+
+[install]
+prefix = "/usr"
+
+[rust]
+debuginfo-level-std = 2
+channel = "stable"
+description = "Arch Linux $pkgbase $epoch:$pkgver-$pkgrel"
+rpath = false
+backtrace-on-ice = true
+jemalloc = true
+
+remap-debuginfo = false
+codegen-units-std = 1
+
+[dist]
+compression-formats = ["gz"]
+
+[target.aarch64-unknown-linux-gnu]
+cc = "/usr/bin/aarch64-unknown-linux-gnu-gcc"
+cxx = "/usr/bin/aarch64-unknown-linux-gnu-g++"
+ar = "/usr/bin/aarch64-unknown-linux-gnu-gcc-ar"
+ranlib = "/usr/bin/aarch64-unknown-linux-gnu-gcc-ranlib"
+llvm-config = "/usr/bin/llvm-config"
+
+[target.arm-unknown-linux-gnueabihf]
+cc = "/usr/bin/arm-linux-gnueabihf-gcc"
+cxx = "/usr/bin/arm-linux-gnueabihf-g++"
+ar = "/usr/bin/arm-linux-gnueabihf-gcc-ar"
+ranlib = "/usr/bin/arm-linux-gnueabihf-gcc-ranlib"
+llvm-config = "/usr/arm-linux-gnueabihf/bin/llvm-config"
+END
+}
+
+_pick() {
+  local p="$1" f d; shift
+  for f; do
+    d="$srcdir/$p/$f"
+    mkdir -p "$(dirname "$d")"
+    mv "$f" "$d"
+    rmdir -p --ignore-fail-on-non-empty "$(dirname "$f")"
+  done
+}
+
+build() {
+  cd rustc-$pkgver-src
+
+  export RUST_BACKTRACE=1
+
+  DESTDIR="$srcdir/dest-rust" python ./x.py install -j "$(nproc)"
+
+  cd ../dest-rust
+
+  # delete unnecessary files, e.g. files only used for the uninstall script
+  rm usr/bin/*.old
+  rm usr/lib/rustlib/{components,install.log,rust-installer-version,uninstall.sh}
+  rm usr/lib/rustlib/manifest-*
+
+  # rustbuild always installs copies of the shared libraries to /usr/lib,
+  # overwrite them with symlinks to the per-architecture versions
+  mkdir -p usr/arm-linux-gnueabihf/lib
+  ln -srft usr/lib usr/lib/rustlib/aarch64-unknown-linux-gnu/lib/*.so
+  ln -srft usr/arm-linux-gnueabihf/lib \
+    usr/lib/rustlib/arm-unknown-linux-gnueabihf/lib/*.so
+
+  _pick dest-arm  usr/lib/rustlib/arm-unknown-linux-gnueabihf usr/arm-linux-gnueabihf/lib
+  _pick dest-src  usr/lib/rustlib/src
+}
+
+package_rust() {
+  optdepends=(
+    'gdb: rust-gdb script'
+    'lldb: rust-lldb script'
+  )
+  provides=(
+    cargo
+    rustfmt
+  )
+  conflicts=(
+    cargo
+    'rust-docs<1:1.56.1-3'
+    rustfmt
+  )
+  replaces=(
+    cargo
+    cargo-tree
+    'rust-docs<1:1.56.1-3'
+    rustfmt
+  )
+
+  cp -a dest-rust/* "$pkgdir"
+}
+
+package_lib32-rust-libs() {
+  pkgdesc="32-bit target and libraries for Rust"
+  depends=(
+    lib32-sysroot
+    rust
+  )
+  provides=(lib32-rust)
+  conflicts=(lib32-rust)
+  replaces=(lib32-rust)
+
+  cp -a dest-arm/* "$pkgdir"
+}
+
+package_rust-src() {
+  pkgdesc="Source code for the Rust standard library"
+  depends=(rust)
+
+  cp -a dest-src/* "$pkgdir"
+}
+
+# vim:set ts=2 sw=2 et:

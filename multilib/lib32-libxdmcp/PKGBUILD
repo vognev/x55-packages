@@ -1,0 +1,38 @@
+# Maintainer: $USER
+
+_pkgbasename=libxdmcp
+pkgname=lib32-$_pkgbasename
+pkgver=1.1.4
+pkgrel=1
+pkgdesc="X11 Display Manager Control Protocol library (32-bit)"
+arch=(aarch64)
+url="https://xorg.freedesktop.org/"
+license=('custom')
+depends=('lib32-sysroot' $_pkgbasename)
+makedepends=('xorg-util-macros' 'lib32-xorgproto')
+provides=('libXdmcp.so')
+source=(${url}/releases/individual/lib/libXdmcp-${pkgver}.tar.xz)
+sha512sums=('83b384d43bfb034c395f83f97d1c6e73aa3d5faa8f8756b08e697c0b9c3c87189651b51e8213fbd1f5f9cbc2d8136cbf143627481744345d78cfe0ff2ad074a9')
+
+build() {
+  cd libXdmcp-${pkgver}
+
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+  export PKG_CONFIG_LIBDIR="/usr/${CHOST}/lib/pkgconfig"
+
+  ./configure \
+    --prefix=/usr/${CHOST} \
+    --disable-static \
+    --libdir=/usr/${CHOST}/lib
+  make
+}
+
+package() {
+  cd libXdmcp-${pkgver}
+
+  make DESTDIR="${pkgdir}" install
+}

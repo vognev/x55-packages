@@ -1,0 +1,52 @@
+# Maintainer: $USER
+
+pkgname=lib32-libvdpau
+pkgver=1.5
+pkgrel=2
+pkgdesc='Nvidia VDPAU library'
+arch=(aarch64)
+url=https://www.freedesktop.org/wiki/Software/VDPAU/
+license=(custom)
+depends=(
+  lib32-libxext
+  libvdpau
+)
+makedepends=(
+  git
+  meson
+  xorgproto
+)
+optdepends=(
+  'lib32-mesa-vdpau: driver for Mesa'
+  'lib32-nvidia-utils: driver for NVIDIA'
+)
+provides=(
+  libvdpau.so
+)
+_tag=b40ac3c8f6cac061ddd5ed70c8305238f97a1b25
+source=(git+https://gitlab.freedesktop.org/vdpau/libvdpau.git#tag=${_tag})
+b2sums=('SKIP')
+
+pkgver() {
+  cd libvdpau
+  git describe --tags | sed 's/[^-]*-g/r&/;s/-/+/g'
+}
+
+build() {
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+  export PKG_CONFIG_LIBDIR="/usr/${CHOST}/lib/pkgconfig"
+
+  arch-meson libvdpau build --cross-file arm32 --prefix=/usr/${CHOST}
+  meson compile -C build
+}
+
+package() {
+  meson install -C build --destdir "$pkgdir"
+  rm -r "${pkgdir}"/usr/arm-linux-gnueabihf/etc
+}
+
+# vim:set sw=2 sts=-1 et:

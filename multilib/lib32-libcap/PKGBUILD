@@ -1,0 +1,56 @@
+# Maintainer: $USER
+
+_name=libcap
+pkgname=lib32-libcap
+pkgver=2.69
+pkgrel=1
+pkgdesc="POSIX 1003.1e capabilities (32-bit)"
+arch=(aarch64)
+url="https://sites.google.com/site/fullycapable/"
+license=(GPL2)
+depends=(
+  libcap=$pkgver
+  lib32-sysroot
+  lib32-pam
+)
+provides=(
+  libcap.so
+  libpsx.so
+)
+source=(https://kernel.org/pub/linux/libs/security/linux-privs/${_name}2/$_name-$pkgver.tar.xz)
+sha512sums=('647c307dc451517da9d089495ab959b4a6fbbe41c79f4e1e9bb663569dad630ead0c2e413dfb393319e3ea14dc9848c81b392107fe3382ce1813d278c3394a7f')
+
+build() {
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+  export PKG_CONFIG_LIBDIR="/usr/${CHOST}/lib/pkgconfig"
+
+  local make_options=(
+    CC="${CC}"
+    DYNAMIC=yes
+    KERNEL_HEADERS=/usr/${CHOST}/include
+    prefix=/usr/${CHOST}
+    sbindir=bin
+    -C $_name-$pkgver
+  )
+
+  make "${make_options[@]}"
+}
+
+package() {
+  local make_options=(
+    DESTDIR="$pkgdir"
+    RAISE_SETFCAP=no
+    prefix=/usr/arm-linux-gnueabihf
+    sbindir=bin
+    install
+    -C $_name-$pkgver
+  )
+
+  make "${make_options[@]}"
+  # remove files provided by libcap
+  rm -rv "$pkgdir/usr/arm-linux-gnueabihf/"{share/man,bin}
+}

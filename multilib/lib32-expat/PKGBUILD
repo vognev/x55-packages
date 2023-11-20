@@ -1,0 +1,42 @@
+# Maintainer: $USER
+
+_name=expat
+pkgname=lib32-expat
+pkgver=2.5.0
+pkgrel=2
+pkgdesc='An XML Parser library'
+arch=(aarch64)
+url=https://libexpat.github.io/
+license=(MIT)
+depends=(
+  "expat=$pkgver"
+  lib32-sysroot
+)
+makedepends=(cmake)
+provides=(libexpat.so)
+source=(https://github.com/libexpat/libexpat/releases/download/R_${pkgver//./_}/$_name-$pkgver.tar.bz2)
+sha512sums=('22fd904d75aab7506a85c03519b9cf79e44898c8e1ba6abf6cb7f95de71b8e63a7e2d5cf4395e3627d46035ea29342b3e631a8809fef8aad3f59976dc075ad17')
+
+build() {
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+  export PKG_CONFIG_LIBDIR="/usr/${CHOST}/lib/pkgconfig"
+
+  cmake -DCMAKE_INSTALL_PREFIX=/usr/${CHOST} \
+        -DCMAKE_INSTALL_LIBDIR=lib \
+        -DCMAKE_BUILD_TYPE=None \
+        -W no-dev \
+        -B build \
+        -S "${_name}-$pkgver"
+  make VERBOSE=1 -C build
+}
+
+package() {
+  make VERBOSE=1 DESTDIR="$pkgdir" -C build install
+  rm -rf "$pkgdir"/usr/arm-linux-gnueabihf/{bin,share/man,share/doc}
+}
+
+# vim:set sw=2 sts=-1 et:

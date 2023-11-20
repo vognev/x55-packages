@@ -1,0 +1,44 @@
+# Maintainer: $USER
+
+pkgname=lib32-e2fsprogs
+pkgver=1.47.0
+pkgrel=1
+pkgdesc='Ext2/3/4 filesystem libraries (32-bit)'
+arch=('aarch64')
+license=('GPL' 'LGPL' 'MIT')
+url='http://e2fsprogs.sourceforge.net'
+depends=('lib32-sysroot' 'e2fsprogs')
+makedepends=('bc' 'lib32-util-linux')
+provides=('libcom_err.so'
+          'libe2p.so'
+          'libext2fs.so'
+          'libss.so')
+source=("https://www.kernel.org/pub/linux/kernel/people/tytso/e2fsprogs/v${pkgver}/e2fsprogs-${pkgver}.tar.xz")
+sha256sums=('144af53f2bbd921cef6f8bea88bb9faddca865da3fbc657cc9b4d2001097d5db')
+
+build() {
+  export PKG_CONFIG_PATH='/usr/arm-linux-gnueabihf/lib/pkgconfig'
+  export CHOST=arm-linux-gnueabihf
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CROSS_COMPILE=$CHOST
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+
+  cd "${srcdir}/e2fsprogs-${pkgver}"
+
+  ./configure --prefix=/usr/${CHOST} \
+    --libdir=/usr/${CHOST}/lib \
+    --with-root-prefix='' \
+    --enable-elf-shlibs \
+    --disable-{debugfs,imager,resizer,fsck,uuidd,libuuid,libblkid}
+  make
+}
+
+package() {
+  cd "${srcdir}/e2fsprogs-${pkgver}"
+
+  make DESTDIR="${pkgdir}" install-libs
+
+  rm -rf "${pkgdir}"/usr/arm-linux-gnueabihf/{bin,share}
+}

@@ -1,0 +1,137 @@
+# Maintainer: $USER
+
+_name=ncurses
+pkgname=lib32-${_name}
+pkgver=6.4_20230520
+pkgrel=1
+pkgdesc="System V Release 4.0 curses emulation library (32-bit)"
+arch=(aarch64)
+url=https://invisible-island.net/ncurses/ncurses.html
+license=(MIT)
+depends=(lib32-sysroot $_name=$pkgver)
+provides=(libncurses++w.so libformw.so libmenuw.so libpanelw.so libncursesw.so)
+source=(
+  https://invisible-mirror.net/archives/ncurses/ncurses-6.4.tar.gz
+  #https://invisible-mirror.net/archives/ncurses/6.4/ncurses-6.4-20221231.patch.gz
+  https://invisible-mirror.net/archives/ncurses/6.4/ncurses-6.4-20230107.patch.gz
+  https://invisible-mirror.net/archives/ncurses/6.4/ncurses-6.4-20230114.patch.gz
+  https://invisible-mirror.net/archives/ncurses/6.4/ncurses-6.4-20230121.patch.gz
+  https://invisible-mirror.net/archives/ncurses/6.4/ncurses-6.4-20230128.patch.gz
+  https://invisible-mirror.net/archives/ncurses/6.4/ncurses-6.4-20230211.patch.gz
+  https://invisible-mirror.net/archives/ncurses/6.4/ncurses-6.4-20230218.patch.gz
+  https://invisible-mirror.net/archives/ncurses/6.4/ncurses-6.4-20230225.patch.gz
+  https://invisible-mirror.net/archives/ncurses/6.4/ncurses-6.4-20230311.patch.gz
+  https://invisible-mirror.net/archives/ncurses/6.4/ncurses-6.4-20230401.patch.gz
+  https://invisible-mirror.net/archives/ncurses/6.4/ncurses-6.4-20230408.patch.gz
+  https://invisible-mirror.net/archives/ncurses/6.4/ncurses-6.4-20230415.patch.gz
+  https://invisible-mirror.net/archives/ncurses/6.4/ncurses-6.4-20230418.patch.gz
+  https://invisible-mirror.net/archives/ncurses/6.4/ncurses-6.4-20230423.patch.gz
+  https://invisible-mirror.net/archives/ncurses/6.4/ncurses-6.4-20230424.patch.gz
+  https://invisible-mirror.net/archives/ncurses/6.4/ncurses-6.4-20230429.patch.gz
+  https://invisible-mirror.net/archives/ncurses/6.4/ncurses-6.4-20230506.patch.gz
+  https://invisible-mirror.net/archives/ncurses/6.4/ncurses-6.4-20230514.patch.gz
+  https://invisible-mirror.net/archives/ncurses/6.4/ncurses-6.4-20230520.patch.gz
+  $_name-6.3-libs.patch
+  $_name-6.3-pkgconfig.patch
+)
+sha512sums=('1c2efff87a82a57e57b0c60023c87bae93f6718114c8f9dc010d4c21119a2f7576d0225dab5f0a227c2cfc6fb6bdbd62728e407f35fce5bf351bb50cf9e0fd34'
+            #'17f29f49777b450f700659f764f94b36cf9cc78d69d969fed3f333d44ab759f16fafd3472b80bc6bbabf89b52c0d3ab9e304c02f7ba614602c4c4c183bd934a6'
+            '970670d8eee50d44b8c7f29daf4c6a575beff3b4fafe12fff786cbd7ac03edeb1e7dae99c8064de99c166e9b3d7811f035ecf75c0eaffb382127cc9df5388d9b'
+            '202c02b09bf21d5c8341fc0e8a30a2c906f0e260a4d536f1332f978ebbe4d93250b832c6449a81ffdc9e030802f064237f39fd0f473e75e61cc77e15232c9a01'
+            '7bee1b23afff48b5319a60f9e90cfd7593c0a107bcd5606da8e765b4d38904a6f732fe8077ecfac45ee2daceed301026ef3fb67435cae1d94ef5fec01440c100'
+            'fffc86e953213ddc9bbe5c6a51bd60725ef75655452d03a53a38bfd5ca318d4801bb9ae4244e7e14ca8c77a9aa6fba298f45a01ae26a964cfc3300268f87c479'
+            'f70ad2605dfe867d8cdcbd6516c759bbf5422bf297d1ee0fb20b2b4262177cb018b7612c735efeccf8794a6fde55e388e4c9ef0bed41e9c467902835c6bf678e'
+            '7c8cec6437bef737235cf0a684646d3b6bf38c66314c14d5f07ec5dc2ca20e3036ffbd9900bb5c45e48929b1454711de412b77e527a7df643dd4403a5abfc787'
+            'fed222bbdb5d3c472ec7283f5612e12d6b1806c49ca5d1dc7dde68bbf72e8b1fe9c31a4737b6bbcf721d97babc9156a524d127f9e3d6c41547813bef70fb247d'
+            '17662557194e81668dac748bce1240276d48e09df2416934da9660861154137024aee989287e9aac17b884e9707cf1c86c438cbcc583902af8a5ecc5a5e08140'
+            'dd3d89cabec528c95c4b065a32d3496210571b0baaab079c2b381563f374072630aab0ec919c26e10ea476b7aebf1eab45ea25f8b4dfcd8172f44270d03c9cc9'
+            '036d4b08c0d17656c75f89625d5b5a253e70458bc9f2303269b4c72349ad62c719951b9ebd65385d6d8ad4be9e89a36090fa842fbb62713d9b8fa6a359170a88'
+            '63a6368745c2c418fa263cec4da69a06e981fb8cb466f0694163fd324ef328251acb38ca3ace02f18b8b6b44dcaf414f74335a2239ae7af2b0c8ed916ca6644d'
+            '4952d56a3fd54be512dcfabe48d967af43c7c51b9e49fbdf575301861940f00fd5e88b994a2088baf4a0e551338b978e47c6ac232bc9ae4e8ee417bd17405288'
+            'a5ebe239b9a6a4a99a1afe0b1a6f7a09058402927077c4c2ca537f3a9f13606573af4ebbe4e0aa5715bd4e71d5bd67d9c95fb4e9d700ac1e7edd809c71667a3a'
+            'bdaa63e0494b981443f07e9ce134785b2420dff3d561eef7a8041e7df5d04e9c9242cdd1cd9e4592fa0724f073b829bff36e74e480235f4eacf37bb639d914ef'
+            'f37164116ed9f09c51a62d90e28dbef68b19a4444c4aa7e2ccdafa3cfa2c7530bcac65b421910a273d0e34b91382bf4f7957f0116af30e13856710199dd266e3'
+            '04967b96d9723b2939fe64eff4388ceee0adf478f659b58cac8601770dd7763fa192d673e78b33c267e00f4ecbfc2863bc49b12fcdeaa8ce24df39126f20b4e1'
+            '0346fae238637c6a69024982485672e6b1447f5902d9cc6b9deff8296220a381b5b41b23b30d053881b09242a4e8ad728618342300c1dee63770286b81e362df'
+            'bf854e4d6f8ed643b8841c9265057f06186699a083edb489e970d1cc8e752fdf49ecaa36518340a2b00a5c6ebf548b7651361b1bd2abb80467d2ce3f9861d28d'
+            'adb02b838c40f1e58a1b31c26d5cd0f2a1c43f3b6d68e839981764c0f6c905a9eb51dd36ff018628fdeb20747cc7467727d57135408ab4848259384077a52b28'
+            '2d2c0ec3c880e638ab4aa3dbff5e28e4cd233153e24816bd87e077f848aa3edd5114cd0f2a7f6e8869dd1861a2746e512886c18264ff1676927dcc320c5ef958')
+
+prepare() {
+  # do not link against test libraries
+  patch -Np1 -d $_name-6.4 -i ../$_name-6.3-libs.patch
+  # do not leak build-time LDFLAGS into the pkgconfig files:
+  # https://bugs.archlinux.org/task/68523
+  patch -Np1 -d $_name-6.4 -i ../$_name-6.3-pkgconfig.patch
+  # NOTE: can't run autoreconf because the autotools setup is custom and ancient
+  
+  for patch in ${_name}-6.4-*.patch; do
+    patch -Np1 -d $_name-6.4 -i ../${patch}
+  done
+}
+
+build() {
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+  export PKG_CONFIG_LIBDIR="/usr/${CHOST}/lib/pkgconfig"
+
+  local configure_options=(
+    --prefix=/usr/${CHOST}
+    --libdir=/usr/${CHOST}/lib
+    --disable-db-install
+    --disable-root-access
+    --disable-root-environ
+    --disable-setuid-environ
+    --enable-widec
+    --enable-pc-files
+    --mandir=/usr/${CHOST}/share/man
+    --with-cxx-binding
+    --with-cxx-shared
+    --with-pkg-config-libdir=/usr/${CHOST}/lib/pkgconfig
+    --with-shared
+    --with-versioned-syms
+    --without-ada
+    --without-debug
+    --without-manpages
+    --without-progs
+    --without-tack
+    --without-tests
+  )
+
+  cd $_name-6.4
+  ./configure "${configure_options[@]}"
+  make
+}
+
+package() {
+  local _pkgver=${pkgver/_*/}
+  make DESTDIR="$pkgdir" install -C $_name-6.4
+
+  # install -vDm 644 $_name-${pkgver/_/-}/COPYING -t "$pkgdir/usr/share/licenses/$pkgname/"
+
+  # fool packages looking to link to non-wide-character ncurses libraries
+  for lib in ncurses ncurses++ form panel menu; do
+    printf "INPUT(-l%sw)\n" "$lib" > "$pkgdir/usr/arm-linux-gnueabihf/lib/lib$lib.so"
+    ln -sv ${lib}w.pc "$pkgdir/usr/arm-linux-gnueabihf/lib/pkgconfig/$lib.pc"
+  done
+
+  # some packages look for -lcurses during build
+  printf 'INPUT(-lncursesw)\n' > "$pkgdir/usr/arm-linux-gnueabihf/lib/libcursesw.so"
+  ln -sv libncurses.so "$pkgdir/usr/arm-linux-gnueabihf/lib/libcurses.so"
+
+  # tic and ticinfo functionality is built in by default
+  # make sure that anything linking against it links against libncursesw.so instead
+  for lib in tic tinfo; do
+    printf "INPUT(libncursesw.so.%s)\n" "${_pkgver:0:1}" > "${pkgdir}/usr/arm-linux-gnueabihf/lib/lib$lib.so"
+    ln -sv libncursesw.so.${pkgver:0:1} "$pkgdir/usr/arm-linux-gnueabihf/lib/lib$lib.so.${_pkgver:0:1}"
+    ln -fsv ncursesw.pc "$pkgdir/usr/arm-linux-gnueabihf/lib/pkgconfig/$lib.pc"
+  done
+
+  # remove all files conflicting with ncurses
+  rm -frv "$pkgdir/usr/arm-linux-gnueabihf/bin"
+}
+
+# vim: set et ts=2 sw=2:

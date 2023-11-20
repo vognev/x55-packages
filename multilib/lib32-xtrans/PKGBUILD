@@ -1,0 +1,35 @@
+# Maintainer: $USER
+
+pkgname=lib32-xtrans
+pkgver=1.5.0
+pkgrel=1
+pkgdesc="X transport library"
+arch=('aarch64')
+license=('custom')
+url="https://xorg.freedesktop.org/"
+options=(!emptydirs)
+source=(${url}/releases/individual/lib/xtrans-${pkgver}.tar.xz)
+sha512sums=('e8091f11d4ad2b14e01de3eac56bdf2267ea26687ce66e3056374d0d02e049480c0b27c482f8828a0efd086f1e4c485108ca4dce3f83d66c1896effa3b38b228')
+depends=('lib32-sysroot')
+
+build() {
+  cd xtrans-${pkgver}
+
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+  export PKG_CONFIG_LIBDIR="/usr/${CHOST}/lib/pkgconfig"
+
+  ./configure --prefix=/usr/${CHOST}
+}
+
+package() {
+  cd xtrans-${pkgver}
+  make DESTDIR="${pkgdir}" install
+
+  # move in place
+  mkdir "$pkgdir"/usr/arm-linux-gnueabihf/lib
+  mv "$pkgdir"/usr/arm-linux-gnueabihf/share/pkgconfig "$pkgdir"/usr/arm-linux-gnueabihf/lib
+}

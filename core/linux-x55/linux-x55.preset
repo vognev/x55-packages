@@ -1,0 +1,8 @@
+# mkinitcpio preset file for the 'linux-x55' package
+
+ALL_config="/etc/mkinitcpio.conf"
+ALL_kver="@version@"
+
+PRESETS=('default')
+
+default_image="/boot/initramfs-linux-x55.img"

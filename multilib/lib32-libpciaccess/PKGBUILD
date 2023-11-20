@@ -1,0 +1,35 @@
+# Maintainer: $USER
+
+_pkgbasename=libpciaccess
+pkgname=lib32-${_pkgbasename}
+pkgver=0.17
+pkgrel=1
+pkgdesc="X11 PCI access library (32-bit"
+arch=(aarch64)
+license=('custom')
+url="https://xorg.freedesktop.org/"
+depends=('lib32-sysroot' ${_pkgbasename})
+makedepends=('pkgconfig' 'xorg-util-macros')
+source=(${url}/releases/individual/lib/${_pkgbasename}-${pkgver}.tar.xz)
+sha512sums=('8484605c66ef18c8d8a3e029a6d33e26fcaa450c1263790d89ac8b0a160ffb2dfceaa6140ac9ad7d8087283ecbec8ac801f757e44890d547c3cbecd2c922ca47')
+
+build() {
+  cd "${srcdir}/${_pkgbasename}-${pkgver}"
+
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+  export PKG_CONFIG_LIBDIR="/usr/${CHOST}/lib/pkgconfig"
+
+  ./configure --prefix=/usr/${CHOST} \
+    --sysconfdir=/etc \
+    --libdir=/usr/${CHOST}/lib
+  make
+}
+
+package() {
+  cd "${srcdir}/${_pkgbasename}-${pkgver}"
+  make DESTDIR="${pkgdir}" install
+}

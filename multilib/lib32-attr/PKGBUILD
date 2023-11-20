@@ -1,0 +1,41 @@
+# Maintainer: $USER
+
+_pkgbasename=attr
+pkgname=lib32-$_pkgbasename
+pkgver=2.5.1
+pkgrel=1
+pkgdesc='Extended attribute support library for ACL support (32-bit)'
+arch=(aarch64)
+url='https://savannah.nongnu.org/projects/attr'
+license=('LGPL')
+depends=('lib32-sysroot' $_pkgbasename)
+makedepends=('gettext')
+provides=('libattr.so')
+source=("https://download.savannah.gnu.org/releases/attr/attr-${pkgver}.tar.xz")
+sha256sums=('db448a626f9313a1a970d636767316a8da32aede70518b8050fa0de7947adc32')
+
+build() {
+  cd "${srcdir}"/attr-${pkgver}
+
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+  export PKG_CONFIG_LIBDIR="/usr/${CHOST}/lib/pkgconfig"
+
+  ./configure \
+    --prefix=/usr/${CHOST} \
+    --libdir=/usr/${CHOST}/lib \
+    --libexecdir=/usr/${CHOST}/lib \
+    --sysconfdir=/etc
+  make
+}
+
+package() {
+  cd "${srcdir}"/attr-${pkgver}
+
+  make DESTDIR="${pkgdir}" install
+
+  rm -rf "${pkgdir}"/{etc,usr/arm-linux-gnueabihf/{bin,share}}
+}

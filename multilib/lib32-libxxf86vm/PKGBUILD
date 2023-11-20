@@ -1,0 +1,38 @@
+# Maintainer: $USER
+
+_pkgbasename=libxxf86vm
+pkgname=lib32-$_pkgbasename
+pkgver=1.1.5
+pkgrel=1
+pkgdesc="X11 XFree86 video mode extension library (32-bit)"
+arch=('aarch64')
+license=('custom')
+url="https://xorg.freedesktop.org/"
+depends=('lib32-sysroot' 'lib32-libxext' $_pkgbasename)
+makedepends=('xorg-util-macros')
+source=(${url}/releases/individual/lib/libXxf86vm-${pkgver}.tar.xz)
+sha512sums=('68226fcb9773a583ea417ab413146203dd7db6ff8a4d388285da972353355e11e179861a77c9fa284aefac025bb3bbf5a9537fa0bf246c782e0116a667c9d9b6')
+
+build() {
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+  export PKG_CONFIG_LIBDIR="/usr/${CHOST}/lib/pkgconfig"
+
+  cd "${srcdir}/libXxf86vm-${pkgver}"
+  ./configure \
+    --prefix=/usr/${CHOST} \
+    --disable-static \
+    --libdir=/usr/${CHOST}/lib
+  make
+}
+
+package() {
+  cd "${srcdir}/libXxf86vm-${pkgver}"
+
+  make DESTDIR="${pkgdir}" install
+
+  rm -rf "${pkgdir}"/usr/arm-linux-gnueabihf/{share,bin}
+}

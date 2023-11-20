@@ -1,0 +1,36 @@
+# Maintainer: $USER
+
+pkgname=lib32-libunistring
+pkgver=1.1
+pkgrel=1
+pkgdesc='Library for manipulating Unicode strings and C strings (32-bit)'
+url='https://www.gnu.org/software/libunistring/'
+arch=('aarch64')
+license=('GPL')
+depends=('libunistring' 'lib32-sysroot')
+source=(https://ftp.gnu.org/gnu/libunistring/libunistring-${pkgver}.tar.xz)
+sha512sums=('01a4267bbd301ea5c389b17ee918ae5b7d645da8b2c6c6f0f004ff2dead9f8e50cda2c6047358890a5fceadc8820ffc5154879193b9bb8970f3fb1fea1f411d6')
+
+build() {
+  cd libunistring-${pkgver}
+  
+  export PKG_CONFIG_PATH='/usr/arm-linux-gnueabihf/lib/pkgconfig'
+  export CHOST=arm-linux-gnueabihf
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CROSS_COMPILE=$CHOST
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+
+  ./configure \
+    --prefix=/usr/${CHOST} \
+    --libdir=/usr/${CHOST}/lib
+  make
+}
+
+package() {
+  make -C libunistring-${pkgver} DESTDIR="${pkgdir}" install
+  rm -rf "${pkgdir}"/usr/arm-linux-gnueabihf/{bin,share}
+}
+
+# vim: ts=2 sw=2 et:

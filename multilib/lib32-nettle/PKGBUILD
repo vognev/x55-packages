@@ -1,0 +1,37 @@
+# Maintainer: $USER
+
+_pkgbasename=nettle
+pkgname=lib32-$_pkgbasename
+pkgver=3.9.1
+pkgrel=1
+pkgdesc="A low-level cryptographic library (32-bit)"
+arch=('aarch64')
+url="https://www.lysator.liu.se/~nisse/nettle/"
+license=('GPL2')
+depends=('lib32-sysroot' 'lib32-gmp' $_pkgbasename=$pkgver)
+provides=('libnettle.so' 'libhogweed.so')
+source=(https://ftp.gnu.org/gnu/nettle/$_pkgbasename-$pkgver.tar.gz)
+sha256sums=('ccfeff981b0ca71bbd6fbcb054f407c60ffb644389a5be80d6716d5b550c6ce3')
+
+build() {
+  cd $_pkgbasename-$pkgver
+
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+  export PKG_CONFIG_LIBDIR="/usr/${CHOST}/lib/pkgconfig"
+
+  ./configure \
+    --prefix=/usr/${CHOST} \
+    --enable-shared \
+    --with-include-path=/usr/${CHOST}/lib/gmp
+  make
+}
+
+package() {
+  cd $_pkgbasename-$pkgver
+  make DESTDIR="$pkgdir/" install
+  rm -rf "${pkgdir}"/usr/arm-linux-gnueabihf/{share,bin}
+}

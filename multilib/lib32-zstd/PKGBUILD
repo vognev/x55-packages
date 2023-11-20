@@ -1,0 +1,56 @@
+# Maintainer: $USER
+
+_pkgname=zstd
+pkgname=lib32-zstd
+pkgver=1.5.5
+pkgrel=1
+pkgdesc='Zstandard - Fast real-time compression algorithm (32-bit)'
+url='https://facebook.github.io/zstd/'
+arch=(aarch64)
+license=(BSD GPL2)
+depends=(zstd lib32-sysroot)
+makedepends=(cmake ninja)
+provides=(libzstd.so)
+source=(https://github.com/facebook/zstd/releases/download/v${pkgver}/zstd-${pkgver}.tar.zst)
+sha256sums=('ce264bca60eb2f0e99e4508cffd0d4d19dd362e84244d7fc941e79fa69ccf673')
+
+prepare() {
+  cd ${_pkgname}-${pkgver}
+  # avoid error on tests without static libs, we use LD_LIBRARY_PATH
+  sed '/build static library to build tests/d' -i build/cmake/CMakeLists.txt
+  sed 's/libzstd_static/libzstd_shared/g' -i build/cmake/tests/CMakeLists.txt
+}
+
+build() {
+  cd ${_pkgname}-${pkgver}
+
+  export PKG_CONFIG_PATH='/usr/arm-linux-gnueabihf/lib/pkgconfig'
+  export CHOST=arm-linux-gnueabihf
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CROSS_COMPILE=$CHOST
+
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+
+  export CFLAGS+=' -ffat-lto-objects'
+  export CXXFLAGS+=' -ffat-lto-objects'
+
+  cmake -S build/cmake -B build -G Ninja \
+    -DCMAKE_BUILD_TYPE=None \
+    -DCMAKE_INSTALL_PREFIX=/usr/${CHOST} \
+    -DCMAKE_INSTALL_LIBDIR=lib \
+    -DZSTD_BUILD_CONTRIB=ON \
+    -DZSTD_BUILD_STATIC=OFF \
+    -DZSTD_BUILD_TESTS=ON \
+    -DZSTD_PROGRAMS_LINK_SHARED=ON
+  cmake --build build
+}
+
+package() {
+  cd ${_pkgname}-${pkgver}
+  DESTDIR="${pkgdir}" cmake --install build
+  rm -rf "${pkgdir}"/usr/arm-linux-gnueabihf/{share,bin}
+}
+
+# vim: ts=2 sw=2 et:

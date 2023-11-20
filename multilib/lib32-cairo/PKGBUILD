@@ -1,0 +1,81 @@
+# Maintainer: $USER
+
+pkgbase=lib32-cairo
+pkgname=(
+  lib32-cairo
+)
+pkgver=1.18.0
+pkgrel=1
+pkgdesc="2D graphics library with support for multiple output devices (32-bit)"
+url="https://cairographics.org/"
+arch=(aarch64)
+license=(
+  LGPL
+  MPL
+)
+depends=(
+  cairo
+  lib32-fontconfig
+  lib32-freetype2
+  lib32-glib2
+  lib32-libpng
+  lib32-libx11
+  lib32-libxcb
+  lib32-libxext
+  lib32-libxrender
+  lib32-pixman
+  lib32-zlib
+)
+makedepends=(
+  git
+  meson
+  valgrind
+)
+_commit=3909090108bb2db55330e3eb148aebe664735363  # tags/1.18.0^0
+source=("git+https://gitlab.freedesktop.org/cairo/cairo.git#commit=$_commit")
+b2sums=('SKIP')
+
+pkgver() {
+  cd cairo
+  git describe --tags | sed 's/[^-]*-g/r&/;s/-/+/g'
+}
+
+prepare() {
+  cd cairo
+}
+
+build() {
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+  export PKG_CONFIG_LIBDIR="/usr/${CHOST}/lib/pkgconfig"
+
+  local meson_options=(
+    --cross-file arm32
+    --prefix /usr/${CHOST}
+    -D dwrite=disabled
+    -D gtk_doc=false
+    -D spectre=disabled
+    -D symbol-lookup=disabled
+    -D tests=disabled
+  )
+
+  arch-meson cairo build "${meson_options[@]}"
+  meson compile -C build
+}
+
+package_lib32-cairo() {
+  provides=(
+    libcairo-gobject.so
+    libcairo-script-interpreter.so
+    libcairo.so
+  )
+
+  meson install -C build --destdir "$pkgdir"
+
+  rm -r "$pkgdir"/usr/arm-linux-gnueabihf/bin
+}
+
+# vim:set sw=2 sts=-1 et:

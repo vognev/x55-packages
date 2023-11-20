@@ -1,0 +1,46 @@
+# Maintainer: $USER
+
+pkgname=lib32-libpsl
+pkgver=0.21.2
+pkgrel=1
+pkgdesc='Public Suffix List library (32-bit)'
+url='https://github.com/rockdaboot/libpsl'
+arch=('aarch64')
+license=('MIT')
+depends=('libpsl' 'lib32-sysroot' 'lib32-libidn2' 'lib32-libunistring')
+makedepends=('git' 'libxslt' 'meson' 'ninja' 'python' 'publicsuffix-list')
+provides=('libpsl.so')
+source=(https://github.com/rockdaboot/libpsl/releases/download/${pkgver}/libpsl-${pkgver}.tar.gz)
+sha512sums=('f1df72220bf4391d4701007100b0df66c833a2cbcb7481c9d13f0b9e0cad3b66d2d15d4b976e5bad60d2ad1540355112fa1acb07aa925c241d2d7cd20681c71d')
+
+prepare() {
+  cd libpsl-$pkgver
+
+  rm -frv list
+}
+
+build() {
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+  export PKG_CONFIG_LIBDIR="/usr/${CHOST}/lib/pkgconfig"
+
+  arch-meson libpsl-$pkgver build \
+    --prefix=/usr/${CHOST} \
+    --cross-file arm32 \
+    -Dbuiltin=true \
+    -Druntime=libidn2 \
+    -Dpsl_file=/usr/share/publicsuffix/effective_tld_names.dat \
+    -Dpsl_distfile=/usr/share/publicsuffix/public_suffix_list.dat \
+    -Dpsl_testfile=/usr/share/publicsuffix/test_psl.txt
+  ninja -C build
+}
+
+package() {
+  DESTDIR="${pkgdir}" ninja -C build install
+  rm -rf "${pkgdir}"/usr/arm-linux-gnueabihf/{bin,share}
+}
+
+# vim: ts=2 sw=2 et:

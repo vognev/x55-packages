@@ -1,0 +1,49 @@
+# Maintainer: $USER
+
+_pkgbasename=libpng
+pkgname=lib32-$_pkgbasename
+pkgver=1.6.40
+_libversion=16
+pkgrel=2
+pkgdesc='A collection of routines used to create PNG format graphics files (32-bit)'
+arch=(aarch64)
+url='http://www.libpng.org/pub/png/libpng.html'
+license=('custom')
+depends=('lib32-zlib' $_pkgbasename)
+provides=('libpng16.so')
+
+source=(
+  "https://downloads.sourceforge.net/sourceforge/${_pkgbasename}/${_pkgbasename}-${pkgver}.tar.xz"
+)
+md5sums=(
+  '6c7fe9dbb80c89c3579bedad9722e559'  
+)
+
+build() {
+  export PKG_CONFIG_PATH='/usr/arm-linux-gnueabihf/lib/pkgconfig'
+  export CHOST=arm-linux-gnueabihf
+  export CFLAGS="${CFLAGS32}"
+
+  cd "${srcdir}/${_pkgbasename}-${pkgver}"
+
+  ./configure \
+    --prefix=/usr/arm-linux-gnueabihf \
+    --libdir=/usr/arm-linux-gnueabihf/lib \
+    --build=$CHOST --host=$CHOST \
+    --disable-static
+  make
+}
+
+package() {
+  cd "${srcdir}/${_pkgbasename}-${pkgver}"
+
+  make DESTDIR="${pkgdir}" install
+
+  # rm -rf "${pkgdir}"/usr/{include,share}
+
+  # rm "$pkgdir/usr/bin/libpng-config"
+  # ln -s "libpng${_libversion}-config-32" "$pkgdir/usr/bin/libpng-config-32"
+
+  # mkdir -p "$pkgdir/usr/share/licenses"
+  # ln -s $_pkgbasename "$pkgdir/usr/share/licenses/$pkgname"
+}

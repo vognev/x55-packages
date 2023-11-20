@@ -1,0 +1,61 @@
+# Maintainer: $USER
+
+pkgbase=lib32-p11-kit
+pkgname=(
+  lib32-p11-kit
+)
+pkgver=0.25.3
+pkgrel=1
+pkgdesc="Loads and enumerates PKCS#11 modules (32-bit library)"
+url="https://p11-glue.freedesktop.org"
+arch=(aarch64)
+license=(BSD)
+depends=(
+  lib32-sysroot
+  lib32-libffi
+  lib32-libtasn1
+  libp11-kit
+)
+makedepends=(
+  lib32-systemd
+  meson
+  systemd
+)
+source=(
+  https://github.com/p11-glue/p11-kit/releases/download/$pkgver/p11-kit-$pkgver.tar.xz
+)
+b2sums=('5c695c1ef95edf4bbbab001aa634076c433df0bc89cb8104deaec2ce00c6908640e467755b49c6900e5d7d5d81e1a3871f4978a212c6f6ae088386ac0b95289a')
+
+prepare() {
+  cd p11-kit-$pkgver
+}
+
+build() {
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+  export PKG_CONFIG_LIBDIR="/usr/${CHOST}/lib/pkgconfig"
+
+  local meson_options=(
+    --prefix=/usr/${CHOST}
+    --cross-file arm32
+    # -D systemd=disabled
+    -D bash_completion=disabled
+    -D trust_paths=/etc/ca-certificates/trust-source:/usr/share/ca-certificates/trust-source
+  )
+
+  arch-meson p11-kit-$pkgver build "${meson_options[@]}"
+  meson compile -C build
+}
+
+package_lib32-p11-kit() {
+  provides=(libp11-kit.so)
+
+  meson install -C build --destdir "$pkgdir"
+
+  rm -r "$pkgdir"/usr/arm-linux-gnueabihf/{etc,bin,share}
+}
+
+# vim:set sw=2 sts=-1 et:

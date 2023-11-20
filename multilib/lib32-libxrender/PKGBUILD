@@ -1,0 +1,36 @@
+# Maintainer: $USER
+
+_pkgbasename=libxrender
+pkgname=lib32-$_pkgbasename
+pkgver=0.9.11
+pkgrel=1
+pkgdesc="X Rendering Extension client library (32-bit)"
+arch=('aarch64')
+url="https://xorg.freedesktop.org/"
+license=('custom')
+depends=('lib32-sysroot' 'lib32-libx11>=1.3.4' $_pkgbasename)
+makedepends=('pkgconfig' 'lib32-xorgproto')
+source=(${url}/releases/individual/lib/libXrender-${pkgver}.tar.xz)
+sha256sums=('bc53759a3a83d1ff702fb59641b3d2f7c56e05051fa0cfa93501166fa782dc24')
+
+build() {
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+  export PKG_CONFIG_LIBDIR="/usr/${CHOST}/lib/pkgconfig"
+
+  cd "${srcdir}/libXrender-${pkgver}"
+  ./configure --prefix=/usr/${CHOST} \
+    --disable-static \
+    --libdir=/usr/${CHOST}/lib
+  make
+}
+
+package() {
+  cd "${srcdir}/libXrender-${pkgver}"
+
+  make DESTDIR="${pkgdir}" install
+  rm -rf "${pkgdir}"/usr/arm-linux-gnueabihf/{share,bin}
+}

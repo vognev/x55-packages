@@ -1,0 +1,74 @@
+# Maintainer: $USER
+
+pkgname=lib32-fontconfig
+pkgver=2.15.0
+pkgrel=1
+epoch=2
+pkgdesc="Library for configuring and customizing font access"
+url=https://www.freedesktop.org/wiki/Software/fontconfig/
+arch=(aarch64)
+license=(custom)
+depends=(
+  fontconfig
+  lib32-expat
+  lib32-freetype2
+)
+makedepends=(
+  git
+  gperf
+  meson
+)
+install=fontconfig-32.install
+_commit=72b9a48f57de6204d99ce1c217b5609ee92ece9b  # tags/2.15.0^0
+source=(
+  "git+https://gitlab.freedesktop.org/fontconfig/fontconfig.git#commit=$_commit"
+  fontconfig-32.hook
+)
+b2sums=('SKIP'
+        'SKIP')
+
+prepare() {
+  cd fontconfig
+}
+
+pkgver() {
+  cd fontconfig
+  git describe --tags | sed 's/[^-]*-g/r&/;s/-/+/g'
+}
+
+build() {
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+  export PKG_CONFIG_LIBDIR="/usr/${CHOST}/lib/pkgconfig"
+
+  local meson_options=(
+    --cross-file arm32
+    --prefix /usr/${CHOST}
+    -D doc=disabled
+  )
+
+  arch-meson fontconfig build "${meson_options[@]}"
+  meson compile -C build
+}
+
+package() {
+  depends+=(
+    libexpat.so
+    libfreetype.so
+  )
+  provides+=(libfontconfig.so)
+
+  meson install -C build --destdir "$pkgdir"
+
+  rm -r "$pkgdir"/usr/arm-linux-gnueabihf/{etc,share}
+
+  mv "$pkgdir"/usr/arm-linux-gnueabihf/bin/fc-cache{,-32}
+  find "$pkgdir"/usr/arm-linux-gnueabihf/bin -type f -not -name '*-32' -delete
+
+  install -Dm644 *.hook -t "$pkgdir/usr/share/libalpm/hooks"
+}
+
+# vim:set sw=2 sts=-1 et:

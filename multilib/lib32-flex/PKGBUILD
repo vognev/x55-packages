@@ -1,0 +1,37 @@
+# Maintainer: $USER
+
+pkgname=lib32-flex
+pkgver=2.6.4
+pkgrel=4
+pkgdesc='A tool for generating text-scanning programs'
+arch=('aarch64')
+url='http://flex.sourceforge.net'
+license=('custom')
+depends=('flex' 'lib32-sysroot')
+source=("https://github.com/westes/flex/releases/download/v${pkgver}/flex-${pkgver}.tar.gz")
+sha256sums=('e87aae032bf07c26f85ac0ed3250998c37621d95f8bd748b31f15b33c45ee995')
+
+build() {
+  cd flex-${pkgver}
+
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+  export PKG_CONFIG_LIBDIR="/usr/${CHOST}/lib/pkgconfig"
+
+  ./configure \
+    --prefix=/usr/${CHOST} \
+    --libdir=/usr/${CHOST}/lib32
+  make
+}
+
+package() {
+  cd flex-${pkgver}
+
+  make DESTDIR="${pkgdir}" install
+  rm -rf "${pkgdir}"/usr/arm-linux-gnueabihf/{share,bin}
+}
+
+# vim: ts=2 sw=2 et:

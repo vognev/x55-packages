@@ -1,0 +1,62 @@
+# Maintainer: $USER
+
+pkgname=lib32-libva
+pkgver=2.20.0
+pkgrel=1
+pkgdesc='Video Acceleration (VA) API for Linux (32-bit)'
+arch=(aarch64)
+url=https://01.org/linuxmedia/vaapi
+license=(MIT)
+depends=(
+  lib32-libdrm
+  lib32-libgl
+  lib32-libx11
+  lib32-libxext
+  lib32-libxfixes
+  lib32-wayland
+  libva
+)
+makedepends=(
+  git
+  lib32-libglvnd
+  lib32-mesa
+  meson
+)
+optdepends=(
+  'lib32-libva-intel-driver: backend for Intel GPUs (<= Haswell)'
+  'lib32-libva-mesa-driver: backend for AMD and NVIDIA GPUs'
+)
+provides=(
+  libva-drm.so
+  libva-glx.so
+  libva-wayland.so
+  libva-x11.so
+  libva.so
+)
+_tag=907b2b5405ca1091b4360bf35060e143bd704b62
+source=(git+https://github.com/intel/libva.git#tag=${_tag})
+b2sums=('SKIP')
+
+pkgver() {
+  cd libva
+  git describe --tags | sed 's/[^-]*-g/r&/;s/-/+/g'
+}
+
+build() {
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+  export PKG_CONFIG_LIBDIR="/usr/${CHOST}/lib/pkgconfig"
+
+  CFLAGS+=" -DENABLE_VA_MESSAGING"  # Option missing
+  arch-meson libva build --cross-file arm32 --prefix=/usr/${CHOST}
+  meson compile -C build
+}
+
+package() {
+  meson install -C build --destdir "${pkgdir}"
+}
+
+# vim:set sw=2 sts=-1 et:

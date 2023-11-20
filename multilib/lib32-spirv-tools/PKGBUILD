@@ -1,0 +1,44 @@
+# Maintainer: $USER
+
+pkgname=lib32-spirv-tools
+pkgver=2023.5
+_tag="${pkgver}.rc1"
+pkgrel=1
+pkgdesc="API and commands for processing SPIR-V modules (32-bit)"
+arch=('aarch64')
+url="https://www.khronos.org/vulkan/"
+license=('custom')
+depends=('lib32-sysroot' 'spirv-tools')
+makedepends=('cmake' 'python' 'ninja' 'lib32-spirv-headers')
+source=("spirv-tools-${pkgver}.tar.gz::https://github.com/KhronosGroup/SPIRV-Tools/archive/refs/tags/v${_tag}.tar.gz")
+sha256sums=('aed90b51ce884ce3ac267acec75e785ee743a1e1fd294c25be33b49c5804d77c')
+
+build() {
+  cd "SPIRV-Tools-${_tag}"
+
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+  export PKG_CONFIG_LIBDIR="/usr/${CHOST}/lib/pkgconfig"
+
+  cmake \
+      -Bbuild \
+      -GNinja \
+      -DCMAKE_INSTALL_PREFIX=/usr/${CHOST} \
+      -DCMAKE_INSTALL_LIBDIR=lib \
+      -DCMAKE_BUILD_TYPE=None \
+      -DSPIRV_WERROR=Off \
+      -DBUILD_SHARED_LIBS=ON \
+      -DSPIRV_TOOLS_BUILD_STATIC=OFF \
+      -DSPIRV-Headers_SOURCE_DIR=/usr/${CHOST}
+  ninja -C build
+}
+
+package() {
+  cd "SPIRV-Tools-${_tag}"
+
+  DESTDIR="${pkgdir}" ninja -C build install
+  rm -r "${pkgdir}"/usr/arm-linux-gnueabihf/bin
+}

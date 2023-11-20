@@ -1,0 +1,46 @@
+# Maintainer: $USER
+
+pkgname=lib32-libtirpc
+pkgver=1.3.4
+pkgrel=1
+pkgdesc='Transport Independent RPC library (SunRPC replacement)'
+arch=(aarch64)
+url=http://libtirpc.sourceforge.net/
+license=(BSD)
+depends=(
+  lib32-krb5
+  libtirpc
+)
+source=(https://downloads.sourceforge.net/sourceforge/libtirpc/libtirpc-${pkgver}.tar.bz2)
+b2sums=('33371e83e9f54e9d6d434b75d3a95bedefce63050846483471e302b1fbb3b63a18db90b652050c43e1c6e42b03e34bafb2fb6ae89787f05af0cf747319825424')
+
+prepare() {
+  cd libtirpc-${pkgver}
+  chmod +x autogen.sh
+  ./autogen.sh
+}
+
+build() {
+  cd libtirpc-${pkgver}
+  
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+  export PKG_CONFIG_LIBDIR="/usr/${CHOST}/lib/pkgconfig"
+
+  ./configure \
+    --prefix=/usr/${CHOST} \
+    --libdir=/usr/${CHOST}/lib \
+    --sysconfdir=/etc
+  make
+}
+
+package() {
+  cd libtirpc-${pkgver}
+  make DESTDIR="${pkgdir}" install
+  rm -rf "${pkgdir}"/{etc,usr/arm-linux-gnueabihf/share}
+}
+
+# vim: ts=2 sw=2 et:

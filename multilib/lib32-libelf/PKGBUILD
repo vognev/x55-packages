@@ -1,0 +1,61 @@
+# Maintainer: $USER
+
+_name=elfutils
+pkgname=lib32-libelf
+pkgver=0.190
+pkgrel=1
+pkgdesc="Handle ELF object files and DWARF debugging information (libraries) (32-bit)"
+arch=(aarch64)
+url="https://sourceware.org/elfutils/"
+license=('GPL-2.0-or-later OR LGPL-3.0-or-later')
+depends=(
+  lib32-sysroot
+  lib32-bzip2
+  lib32-curl
+  lib32-xz
+  lib32-zlib
+  lib32-zstd
+  libelf=$pkgver
+)
+options=(staticlibs)
+# NOTE: the shared objects can not be added to provides as they are not versioned
+source=(https://sourceware.org/elfutils/ftp/$pkgver/elfutils-$pkgver.tar.bz2)
+sha512sums=('9c4f5328097e028286c42f29e39dc3d80914b656cdfbbe05b639e91bc787ae8ae64dd4d69a6e317ce30c01648ded10281b86a51e718295f4c589df1225a48102')
+
+prepare() {
+  # remove failing test due to missing glibc debug package during test: https://bugs.archlinux.org/task/74875
+  sed -e 's/run-backtrace-native.sh//g' -i $_name-$pkgver/tests/Makefile.am
+
+  cd $_name-$pkgver
+  autoreconf -fiv
+}
+
+build() {
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+  export PKG_CONFIG_LIBDIR="/usr/${CHOST}/lib/pkgconfig"
+  
+  local configure_options=(
+    --prefix=/usr/${CHOST}
+    --sysconfdir=/etc
+    --libdir=/usr/${CHOST}/lib
+    --disable-debuginfod
+  )
+
+  # fat-lto-objects is required for non-mangled .a files in libelf
+  CFLAGS+=" -ffat-lto-objects"
+  # fixme
+  CFLAGS+=" -Wno-error=use-after-free"
+  cd $_name-$pkgver
+  ./configure "${configure_options[@]}"
+  make
+}
+
+package() {
+  make DESTDIR="$pkgdir" install -C $_name-$pkgver
+  # remove anything that would conflict with elfutils and debuginfod
+  rm -rf "$pkgdir/"{etc,usr/arm-linux-gnueabihf/{bin,share}}
+}

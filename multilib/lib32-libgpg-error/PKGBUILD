@@ -1,0 +1,38 @@
+# Maintainer: $USER
+
+_pkgbasename=libgpg-error
+pkgname=lib32-$_pkgbasename
+pkgver=1.47
+pkgrel=1
+pkgdesc="Support library for libgcrypt (32-bit)"
+arch=(aarch64)
+url="https://www.gnupg.org"
+license=('LGPL')
+depends=('lib32-sysroot' $_pkgbasename)
+source=(https://www.gnupg.org/ftp/gcrypt/libgpg-error/${_pkgbasename}-${pkgver}.tar.bz2)
+sha512sums=('bbb4b15dae75856ee5b1253568674b56ad155524ae29a075cb5b0a7e74c4af685131775c3ea2226fff2f84ef80855e77aa661645d002b490a795c7ae57b66a30')
+
+prepare() {
+  cd ${_pkgbasename}-${pkgver}
+  sed -e 's|/var/example-target||' -i src/gpg-error-config-test.sh.in # Fix pkgconfig test with pkgconf 1.8
+}
+
+build() {
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+  export PKG_CONFIG_LIBDIR="/usr/${CHOST}/lib/pkgconfig"
+
+  cd "${srcdir}"/${_pkgbasename}-${pkgver}
+  ./configure --prefix=/usr/${CHOST} --libdir=/usr/${CHOST}/lib
+  make
+}
+
+package() {
+  cd "${srcdir}"/${_pkgbasename}-${pkgver}
+  make DESTDIR="${pkgdir}/" install
+
+  rm -rf "${pkgdir}"/usr/arm-linux-gnueabihf/{share,bin}
+}

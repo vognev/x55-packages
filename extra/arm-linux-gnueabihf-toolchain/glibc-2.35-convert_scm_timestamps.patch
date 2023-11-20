@@ -1,0 +1,13 @@
+diff --git a/sysdeps/unix/sysv/linux/convert_scm_timestamps.c b/sysdeps/unix/sysv/linux/convert_scm_timestamps.c
+index 82171bf3..1102a03d 100644
+--- a/sysdeps/unix/sysv/linux/convert_scm_timestamps.c
++++ b/sysdeps/unix/sysv/linux/convert_scm_timestamps.c
+@@ -18,7 +18,7 @@
+ 
+ #include <kernel-features.h>
+ 
+-#ifndef __ASSUME_TIME64_SYSCALLS
++#if ! defined(__ASSUME_TIME64_SYSCALLS) || (__TIMESIZE != 64)
+ # include <stdint.h>
+ # include <string.h>
+ # include <sys/socket.h>

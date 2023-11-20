@@ -1,0 +1,39 @@
+# Maintainer: $USER
+
+_pkgbasename=keyutils
+pkgname=lib32-$_pkgbasename
+_tag='5678a1aae8834b5c16b5ed7dc72ef8836a29e122' # git rev-parse v${pkgver}
+pkgver=1.6.3
+pkgrel=1
+pkgdesc='Linux Key Management Utilities (32-bit)'
+arch=('aarch64')
+url='https://www.kernel.org/'
+license=('GPL2' 'LGPL2.1')
+depends=('lib32-sysroot' 'lib32-krb5' "${_pkgbasename}")
+makedepends=('git')
+source=("git+https://git.kernel.org/pub/scm/linux/kernel/git/dhowells/keyutils.git#tag=${_tag}")
+sha512sums=('SKIP')
+
+build() {
+  cd "${_pkgbasename}"
+  
+  export PKG_CONFIG_PATH='/usr/arm-linux-gnueabihf/lib/pkgconfig'
+  export CHOST=arm-linux-gnueabihf
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CROSS_COMPILE=$CHOST
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+
+  sed -i -e "/^INCLUDEDIR/ { s/:=.*/:= \/usr\/${CHOST}\/include/ }" Makefile
+  sed -i -e  "/^USRLIBDIR/ { s/:=.*/:= \/usr\/${CHOST}\/lib/ }"     Makefile
+  sed -i -e     "/^LIBDIR/ { s/:=.*/:= \/usr\/${CHOST}\/lib/ }"     Makefile
+  make CFLAGS="${CFLAGS}" LDFLAGS="${LDFLAGS}"
+}
+
+package() {
+  cd "${_pkgbasename}"
+  make DESTDIR="$pkgdir" install
+
+  rm -rf "${pkgdir}"{/bin,/sbin,/etc,/usr/share}
+}

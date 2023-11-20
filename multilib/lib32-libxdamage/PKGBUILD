@@ -1,0 +1,38 @@
+# Maintainer: $USER
+
+_pkgbasename=libxdamage
+pkgname=lib32-$_pkgbasename
+pkgver=1.1.6
+pkgrel=1
+pkgdesc="X11 damaged region extension library (32-bit)"
+arch=(aarch64)
+url="https://xorg.freedesktop.org/"
+license=('custom')
+depends=('lib32-libxfixes>=4.0.4' $_pkgbasename)
+makedepends=('lib32-xorgproto')
+source=(${url}/releases/individual/lib/libXdamage-${pkgver}.tar.xz)
+sha256sums=('52733c1f5262fca35f64e7d5060c6fcd81a880ba8e1e65c9621cf0727afb5d11')
+
+build() {
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+  export PKG_CONFIG_LIBDIR="/usr/${CHOST}/lib/pkgconfig"
+
+  cd "${srcdir}/libXdamage-${pkgver}"
+  ./configure \
+    --prefix=/usr/${CHOST} \
+    --sysconfdir=/etc \
+    --disable-static \
+    --libdir=/usr/${CHOST}/lib
+  make
+}
+
+package() {
+  cd "${srcdir}/libXdamage-${pkgver}"
+
+  make DESTDIR="${pkgdir}" install || return 1
+  rm -rf "${pkgdir}"/usr/arm-linux-gnueabihf/{share,bin}
+}

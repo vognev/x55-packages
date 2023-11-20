@@ -1,0 +1,53 @@
+# Maintainer: $USER
+
+_pkgbasename=openssl
+pkgname=lib32-$_pkgbasename
+epoch=1
+pkgver=3.2.0
+pkgrel=1
+pkgdesc='The Open Source toolkit for Secure Sockets Layer and Transport Layer Security (32-bit)'
+arch=('aarch64')
+url='https://www.openssl.org'
+license=('Apache')
+depends=('lib32-sysroot' "${_pkgbasename}")
+optdepends=('ca-certificates')
+provides=('libcrypto.so' 'libssl.so')
+source=("https://www.openssl.org/source/${_pkgbasename}-${pkgver}.tar.gz"
+        'ca-dir.patch')
+sha256sums=('14c826f07c7e433706fb5c69fa9e25dab95684844b4c962a2cf1bf183eb4690e'
+            '0a32d9ca68e8d985ce0bfef6a4c20b46675e06178cc2d0bf6d91bd6865d648b7')
+
+prepare() {
+	cd "$srcdir"/$_pkgbasename-$pkgver
+
+	# set ca dir to /etc/ssl by default
+	patch -Np1 -i "$srcdir"/ca-dir.patch
+}
+
+build() {
+	export PKG_CONFIG_PATH='/usr/arm-linux-gnueabihf/lib/pkgconfig'
+	export CHOST=arm-linux-gnueabihf
+	export CFLAGS="${CFLAGS32}"
+	export CXXFLAGS="${CXXFLAGS32}"
+	#export CROSS_COMPILE="${CHOST}-"
+	export CC="${CHOST}-gcc"
+	export CXX="${CHOST}-g++"
+
+	cd "$srcdir"/$_pkgbasename-$pkgver
+
+	./Configure --prefix=/usr/${CHOST} \
+		--openssldir=/etc/ssl \
+		--libdir=/usr/${CHOST}/lib \
+		shared enable-ktls linux-armv4 \
+		-Wa,--noexecstack
+
+	make depend
+	make
+}
+
+package() {
+	cd "$srcdir"/$_pkgbasename-$pkgver
+	make DESTDIR="$pkgdir" install_sw
+
+	rm -r "$pkgdir"/usr/arm-linux-gnueabihf/bin
+}

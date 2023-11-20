@@ -1,0 +1,64 @@
+# Maintainer: $USER
+
+_pkgname=glib
+pkgname=lib32-glib
+pkgver=1.2.10
+pkgrel=5
+pkgdesc="Common C routines used by Gtk+ and other libs (32-bit)"
+arch=('aarch64')
+url="http://www.gtk.org/"
+license=('LGPL')
+depends=('lib32-sysroot' 'sh')
+options=('!makeflags')
+source=(https://download.gnome.org/sources/glib/1.2/${_pkgname}-${pkgver}.tar.gz
+	      glib-1.2.10-gcc9.patch
+	      gcc340.patch
+        aclocal-fixes.patch
+        glib1-autotools.patch)
+md5sums=('6fe30dad87c77b91b632def29dd69ef9'
+        'd2315d4f69f0f192b681a75139981de2'
+        '877b3330e822a4be69a0f8a8c268cfd7'
+        'e52c4b88427b9785bb8049dbdc9ff6fb'
+        '1630c96b603136732064dc4f3ea677bf')
+
+prepare() {
+  cd ${_pkgname}-${pkgver}
+
+  patch -Np1 -i "${srcdir}/gcc340.patch"
+  patch -Np0 -i "${srcdir}/glib-1.2.10-gcc9.patch"
+  patch -Np0 -i "${srcdir}/aclocal-fixes.patch"
+  patch -Np1 -i "${srcdir}/glib1-autotools.patch"
+  
+  sed -i -e 's/ifdef[[:space:]]*__OPTIMIZE__/if 0/' glib.h
+}
+
+build() {
+  CFLAGS="${CFLAGS32} -Wno-error -Wno-format -Wno-format-security"
+  CXXFLAGS="${CXXFLAGS32} -Wno-error -Wno-format -Wno-format-security"
+  CHOST=arm-linux-gnueabihf
+
+  cd ${_pkgname}-${pkgver}
+
+  rm aclocal.m4 acinclude.m4
+  echo 'LT_INIT' >> configure.in
+
+  autoreconf --install --force
+  ./configure --prefix=/usr/${CHOST} \
+    --libdir=/usr/${CHOST}/lib \
+    --mandir=/usr/${CHOST}/share/man \
+    --infodir=/usr/${CHOST}/share/info \
+    --host=${CHOST} --target=${CHOST}
+  make
+}
+
+check() {
+  cd ${_pkgname}-${pkgver}
+  make check
+}
+
+package() {
+  cd ${_pkgname}-${pkgver}
+  make DESTDIR="${pkgdir}" install
+  # Cleanup for lib32 package
+  # rm -rf ${pkgdir}/usr/{include,share,bin}
+}

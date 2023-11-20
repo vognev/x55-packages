@@ -1,0 +1,121 @@
+# Maintainer: $USER
+
+pkgbase=lib32-harfbuzz
+pkgname=(
+  lib32-harfbuzz
+  lib32-harfbuzz-cairo
+  lib32-harfbuzz-icu
+)
+pkgver=8.3.0
+pkgrel=2
+pkgdesc="OpenType text shaping engine - 32-bit"
+url="https://www.freedesktop.org/wiki/Software/HarfBuzz"
+arch=(aarch64)
+license=(MIT)
+makedepends=(
+  git
+  lib32-cairo
+  lib32-freetype2
+  lib32-glib2
+  lib32-icu
+  meson
+  python
+  ragel
+)
+checkdepends=(
+  python-fonttools
+  python-setuptools
+)
+_commit=894a1f72ee93a1fd8dc1d9218cb3fd8f048be29a  # tags/8.3.0^0
+source=("git+https://github.com/harfbuzz/harfbuzz#commit=$_commit")
+b2sums=('SKIP')
+
+pkgver() {
+  cd harfbuzz
+  git describe --tags | sed 's/[^-]*-g/r&/;s/-/+/g'
+}
+
+prepare() {
+  cd harfbuzz
+}
+
+build() {
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+  export PKG_CONFIG_LIBDIR="/usr/${CHOST}/lib/pkgconfig"
+
+  local meson_options=(
+    --cross-file arm32
+    --prefix=/usr/${CHOST}
+    -D chafa=disabled
+    -D introspection=disabled
+    -D docs=disabled
+  )
+
+  # Harfbuzz wants no exceptions
+  CFLAGS="${CFLAGS/-fexceptions/}"
+  CXXFLAGS="${CXXFLAGS/-fexceptions/}"
+
+  arch-meson harfbuzz build "${meson_options[@]}"
+  meson compile -C build
+}
+
+_pick() {
+  local p="$1" f d; shift
+  for f; do
+    d="$srcdir/$p/${f#$pkgdir/}"
+    mkdir -p "$(dirname "$d")"
+    mv "$f" "$d"
+    rmdir -p --ignore-fail-on-non-empty "$(dirname "$f")"
+  done
+}
+
+package_lib32-harfbuzz() {
+  depends=(
+    harfbuzz
+    libfreetype.so
+    libg{lib,object}-2.0.so
+  )
+  provides=(libharfbuzz{,-subset,-gobject}.so)
+
+  meson install -C build --destdir "$pkgdir"
+
+  ( cd "$pkgdir"
+    rm -r usr/arm-linux-gnueabihf/bin
+
+    _pick hb-cairo usr/arm-linux-gnueabihf/lib/libharfbuzz-cairo*
+    _pick hb-cairo usr/arm-linux-gnueabihf/lib/pkgconfig/harfbuzz-cairo.pc
+
+    _pick hb-icu usr/arm-linux-gnueabihf/lib/libharfbuzz-icu*
+    _pick hb-icu usr/arm-linux-gnueabihf/lib/pkgconfig/harfbuzz-icu.pc
+  )
+}
+
+package_lib32-harfbuzz-cairo() {
+  pkgdesc+=" - Cairo integration"
+  depends=(
+    harfbuzz-cairo
+    libcairo.so
+    libharfbuzz.so
+  )
+  provides=(libharfbuzz-cairo.so)
+
+  mv hb-cairo/* "$pkgdir"
+}
+
+package_lib32-harfbuzz-icu() {
+  pkgdesc+=" - ICU integration"
+  depends=(
+    harfbuzz-icu
+    libharfbuzz.so
+    libicuuc.so
+  )
+  provides=(libharfbuzz-icu.so)
+
+  mv hb-icu/* "$pkgdir"
+}
+
+# vim:set sw=2 sts=-1 et:

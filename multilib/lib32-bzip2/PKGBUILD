@@ -1,0 +1,43 @@
+# Maintainer: $USER
+
+_pkgbasename=bzip2
+pkgname=lib32-bzip2
+pkgver=1.0.8
+pkgrel=3
+pkgdesc="A high-quality data compression program (32-bit)"
+arch=(aarch64)
+license=('custom')
+url="https://sourceware.org/bzip2/"
+depends=('lib32-sysroot' $_pkgbasename)
+
+source=(
+  https://sourceware.org/pub/bzip2/$_pkgbasename-$pkgver.tar.gz
+)
+md5sums=(
+  '67e051268d0c475ea773822f7500d0e5'
+)
+
+build() {
+  export CHOST=arm-linux-gnueabihf
+
+  cd ${_pkgbasename}-${pkgver}
+
+  make -f Makefile-libbz2_so CC="${CHOST}-gcc $CFLAGS32 $LDFLAGS"
+  make libbz2.a CC="${CHOST}-gcc $CFLAGS32 $LDFLAGS"
+}
+
+package(){
+  export CHOST=arm-linux-gnueabihf
+
+  cd ${_pkgbasename}-${pkgver}
+
+  install -dm755 "$pkgdir"/usr/${CHOST}/lib
+  install -dm755 "$pkgdir"/usr/${CHOST}/include
+
+  cp -a libbz2.so*        "$pkgdir"/usr/${CHOST}/lib
+  ln -s libbz2.so.$pkgver "$pkgdir"/usr/${CHOST}/lib/libbz2.so
+  ln -s libbz2.so.$pkgver "$pkgdir"/usr/${CHOST}/lib/libbz2.so.1
+
+  install -Dm644 libbz2.a "$pkgdir"/usr/${CHOST}/lib/libbz2.a
+  install -m644 bzlib.h   "$pkgdir"/usr/${CHOST}/include/
+}

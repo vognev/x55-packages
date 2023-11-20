@@ -1,0 +1,42 @@
+# Maintainer: $USER
+
+pkgname=lib32-libffi
+pkgver=3.4.4
+pkgrel=1
+pkgdesc="Portable foreign function interface library (32-bit)"
+arch=(aarch64)
+url=https://sourceware.org/libffi/
+license=(MIT)
+depends=(lib32-sysroot libffi=$pkgver)
+checkdepends=(dejagnu)
+provides=(libffi.so)
+source=(https://github.com/libffi/libffi/releases/download/v$pkgver/libffi-$pkgver.tar.gz)
+sha256sums=('d66c56ad259a82cf2a9dfc408b32bf5da52371500b84745f7fb8b645712df676')
+b2sums=('189fe1ffe9507f204581b0ab09995dc7e7b761bb4eac7e338e9f5ff81431aebcef6c182c1839c9f9acb2706697a260c67e6d1351cf7e2aed7c4eb5d694f6f8fd')
+
+build() {
+  cd libffi-$pkgver
+
+  export CFLAGS="${CFLAGS32} -Wno-error -Wno-format -Wno-format-security"
+  export CXXFLAGS="${CXXFLAGS32} -Wno-error -Wno-format -Wno-format-security"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+
+  ./configure \
+    --build=$CHOST \
+    --prefix=/usr/$CHOST \
+    --libdir=/usr/$CHOST/lib \
+    --disable-static \
+    --disable-multi-os-directory \
+    --disable-exec-static-tramp \
+    --enable-pax_emutramp
+  make
+}
+
+package() {
+  cd libffi-$pkgver
+  make DESTDIR="$pkgdir" install
+  rm "$pkgdir"/usr/arm-linux-gnueabihf/share/info/dir
+}
+
+# vim:set ts=2 sw=2 et:

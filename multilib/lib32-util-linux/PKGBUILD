@@ -1,0 +1,52 @@
+# Maintainer: $USER
+
+_pkgbasename=util-linux
+pkgname=lib32-${_pkgbasename}
+pkgver=2.39.3
+pkgrel=1
+pkgdesc='Miscellaneous system utilities for Linux (32-bit)'
+url='https://github.com/util-linux/util-linux'
+arch=('aarch64')
+makedepends=('git' 'meson' 'lib32-ncurses') #'lib32-libxcrypt'
+depends=('lib32-sysroot' 'util-linux-libs')
+provides=('libuuid.so' 'libblkid.so' 'libfdisk.so' 'libmount.so' 'libsmartcols.so')
+license=('GPL2')
+options=('!emptydirs')
+source=("${_pkgbasename}-${pkgver}.tar.gz::https://github.com/util-linux/util-linux/archive/refs/tags/v${pkgver}.tar.gz")
+sha512sums=(
+  '63bb6d5a8ebd9952b4a9752e37cf9271e00645fb73c5bc19dcf32d6155991118642fdef23c49f835a69c9abdcef565114ee06f89ff20561726fdc40b26f02f6c'
+)
+
+build() {
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+  export PKG_CONFIG_LIBDIR="/usr/${CHOST}/lib/pkgconfig"
+
+  local _meson_options=(
+    --cross-file arm32
+    --prefix     /usr/arm-linux-gnueabihf 
+    --libexecdir /usr/${CHOST}/lib
+    --libdir     /usr/${CHOST}/lib
+    --auto-features disabled
+    -Dbuild-libblkid=enabled
+    -Dbuild-libuuid=enabled
+    -Dbuild-libmount=enabled
+    -Dbuild-libsmartcols=enabled
+    -Dbuild-libfdisk=enabled
+    -Dncurses=disabled
+    -Dncursesw=enabled
+  )
+
+  arch-meson "${_pkgbasename}-${pkgver}" build "${_meson_options[@]}"
+
+  meson compile -C build
+}
+
+package() {
+  DESTDIR="${pkgdir}" meson install -C build
+
+  rm -rf "${pkgdir}"/usr/arm-linux-gnueabihf/{bin,share}
+}

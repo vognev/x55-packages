@@ -1,0 +1,39 @@
+# Maintainer: $USER
+
+_pkgbase=libtasn1
+pkgname=lib32-${_pkgbase}
+pkgver=4.19.0
+pkgrel=1
+pkgdesc="The ASN.1 library used in GNUTLS (32 bit)"
+arch=('aarch64')
+license=('GPL3' 'LGPL')
+url="https://www.gnu.org/software/libtasn1/"
+depends=('lib32-sysroot' ${_pkgbase})
+provides=('libtasn1.so')
+source=(https://ftp.gnu.org/gnu/libtasn1/${_pkgbase}-${pkgver}.tar.gz)
+sha256sums=('1613f0ac1cf484d6ec0ce3b8c06d56263cc7242f1c23b30d82d23de345a63f7a')
+
+build() {
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+  export PKG_CONFIG_LIBDIR="/usr/${CHOST}/lib/pkgconfig"
+
+  cd ${_pkgbase}-${pkgver}
+
+  ./configure --prefix=/usr/${CHOST} \
+      --libdir=/usr/${CHOST}/lib \
+      --with-packager=ArchlinuxARM \
+      --with-packager-version=${pkgver}-${pkgrel}
+  make
+}
+
+package() {
+  cd ${_pkgbase}-${pkgver}
+
+  make DESTDIR="${pkgdir}" install
+
+  rm -rf "${pkgdir}/usr/arm-linux-gnueabihf/"{bin,share}
+}

@@ -1,0 +1,47 @@
+# Maintainer: $USER
+
+pkgname=lib32-xorgproto
+pkgver=2023.2
+pkgrel=1
+pkgdesc="combined X.Org X11 Protocol headers (32bit)"
+arch=('aarch64')
+url="https://xorg.freedesktop.org/"
+license=('custom')
+depends=('lib32-sysroot')
+makedepends=('xorg-util-macros' 'meson')
+checkdepends=('python-libevdev')
+source=(https://xorg.freedesktop.org/archive/individual/proto/xorgproto-$pkgver.tar.xz)
+sha512sums=('af0a8c8094fc6a490a886a8c048175762b6334798f2e48b6f6e19a7bb39ddbef05fa1237c4e9d9f1d870d24f5ca7a7c463044c41ceebd108f8ab0816677a582d')
+
+prepare() {
+  mkdir -p build
+}
+
+build() {
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+  export PKG_CONFIG_LIBDIR="/usr/${CHOST}/lib/pkgconfig"
+
+  local _meson_options=(
+    --prefix /usr/${CHOST}
+    --cross-file arm32
+  )
+
+  arch-meson xorgproto-$pkgver build "${_meson_options[@]}"
+  ninja -C build
+}
+
+package() {
+  DESTDIR="$pkgdir" ninja -C build install
+
+  # cleanup
+  rm "${pkgdir}"/usr/arm-linux-gnueabihf/include/X11/extensions/apple*
+  rm "${pkgdir}"/usr/arm-linux-gnueabihf/share/pkgconfig/applewmproto.pc
+
+  # move in place
+  mkdir "$pkgdir"/usr/arm-linux-gnueabihf/lib
+  mv "$pkgdir"/usr/arm-linux-gnueabihf/share/pkgconfig "$pkgdir"/usr/arm-linux-gnueabihf/lib
+}

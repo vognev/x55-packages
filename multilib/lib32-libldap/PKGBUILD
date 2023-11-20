@@ -1,0 +1,55 @@
+# Maintainer: $USER
+
+_pkgbasename=libldap
+pkgname=lib32-$_pkgbasename
+pkgver=2.6.6
+pkgrel=1
+pkgdesc="Lightweight Directory Access Protocol (LDAP) client libraries (32-bit)"
+arch=('aarch64')
+license=('custom')
+url="https://www.openldap.org/"
+depends=('lib32-openssl' 'lib32-sysroot' $_pkgbasename)
+makedepends=()
+source=(https://www.openldap.org/software/download/OpenLDAP/openldap-release/openldap-${pkgver}.tgz)
+sha256sums=('082e998cf542984d43634442dbe11da860759e510907152ea579bdc42fe39ea0')
+
+build() {
+  export PKG_CONFIG_PATH='/usr/arm-linux-gnueabihf/lib/pkgconfig'
+  export CHOST=arm-linux-gnueabihf
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CROSS_COMPILE=$CHOST
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+
+  cd openldap-${pkgver}
+
+  ./configure --prefix=/usr/${CHOST} \
+    --libexecdir=/usr/${CHOST}/sbin \
+    --sysconfdir=/etc \
+    --mandir=/usr/${CHOST}/share/man \
+    --localstatedir=/var/lib/openldap \
+    --enable-crypt --enable-dynamic \
+    --with-threads --disable-wrappers \
+    --disable-spasswd --without-cyrus-sasl \
+    --disable-bdb --disable-hdb --libdir=/usr/${CHOST}/lib
+
+  cd include
+  make
+
+  cd ../libraries
+  make depend
+  make
+}
+
+package() {
+  cd openldap-${pkgver}
+
+  cd include
+  make DESTDIR="${pkgdir}" install
+
+  cd ../libraries
+  make DESTDIR="${pkgdir}" install
+
+  rm -rf "${pkgdir}"/usr/arm-linux-gnueabihf/{share,bin} "$pkgdir/etc"
+}

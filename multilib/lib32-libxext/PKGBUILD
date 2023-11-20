@@ -1,0 +1,39 @@
+# Maintainer: $USER
+
+_pkgbasename=libxext
+pkgname=lib32-$_pkgbasename
+pkgver=1.3.5
+pkgrel=1
+pkgdesc="X11 miscellaneous extensions library (32-bit)"
+arch=(aarch64)
+url="https://xorg.freedesktop.org/"
+license=('custom')
+depends=('lib32-sysroot' 'lib32-libx11' $_pkgbasename)
+makedepends=('xorg-util-macros')
+source=(${url}/releases/individual/lib/libXext-${pkgver}.tar.xz)
+sha512sums=('fd9805982dabfb14b1526c0cb71f94508003fa3fcd60560d387465afd891c1dca61927ae86278436d53f4b840cacd1f412071fdc3dce1d6f730610a9c163d59b')
+
+build() {
+  cd "${srcdir}/libXext-${pkgver}"
+
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+  export PKG_CONFIG_LIBDIR="/usr/${CHOST}/lib/pkgconfig"
+
+  ./configure --prefix=/usr/${CHOST} \
+    --sysconfdir=/etc \
+    --disable-static \
+    --libdir=/usr/${CHOST}/lib
+  make
+}
+
+package() {
+  cd "${srcdir}/libXext-${pkgver}"
+
+  make DESTDIR="${pkgdir}" install
+
+  rm -r "${pkgdir}"/usr/arm-linux-gnueabihf/share
+}

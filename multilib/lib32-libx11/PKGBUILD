@@ -1,0 +1,41 @@
+# Maintainer: $USER
+
+_pkgbasename=libx11
+pkgname=lib32-$_pkgbasename
+pkgver=1.8.7
+pkgrel=1
+pkgdesc="X11 client-side library (32-bit)"
+arch=(aarch64)
+url="https://xorg.freedesktop.org/"
+depends=('lib32-libxcb' $_pkgbasename)
+makedepends=('lib32-sysroot' 'xorg-util-macros' 'lib32-xorgproto' 'lib32-xtrans')
+license=('custom:XFREE86')
+source=(${url}/releases/individual/lib/libX11-${pkgver}.tar.xz)
+sha512sums=('d53bfc18f38d339a6a695b09835b2ae96b323881678bfe7ddca697605e3bdf4102ff49cc3078880a6c55b5977fcdd0aadaf5429086132de3a5bda302f79a2fa6')
+
+build() {
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+  export PKG_CONFIG_LIBDIR="/usr/${CHOST}/lib/pkgconfig"
+
+  cd libX11-${pkgver}
+  ./configure \
+    --prefix=/usr/${CHOST} \
+    --disable-static \
+    --disable-xf86bigfont \
+    --disable-thread-safety-constructor \
+    --libdir=/usr/${CHOST}/lib \
+    --disable-specs
+  sed -i -e 's/ -shared / -Wl,-O1,--as-needed\0/g' libtool
+  make
+}
+
+package() {
+  cd libX11-${pkgver}
+  make DESTDIR="${pkgdir}" install
+
+  rm -r "${pkgdir}"/usr/arm-linux-gnueabihf/share
+}

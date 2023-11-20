@@ -1,0 +1,169 @@
+# Maintainer: $USER
+
+pkgname=lib32-systemd
+_pkgbasename=systemd
+_tag='be88ad03366b8aa059bb72b39a270128ba62b428' # git rev-parse v${_tag_name}
+_tag_name=255.2
+pkgver="${_tag_name/-/}"
+pkgrel=1
+pkgdesc='system and service manager (32-bit)'
+arch=('aarch64')
+url='https://www.github.com/systemd/systemd'
+license=('GPL2' 'LGPL2.1')
+depends=('lib32-sysroot' 'lib32-libcap' 'lib32-libgcrypt'
+         'lib32-xz' 'lib32-zstd' 'systemd-libs')
+makedepends=('git' 'gperf' 'intltool' 'lib32-acl' 'lib32-bzip2'
+             'lib32-curl' 'lib32-dbus' 'lib32-glib2'
+             'lib32-gnutls' 'lib32-libelf' 'lib32-libidn2' 'lib32-pcre2'
+             'libxslt' 'meson' 'python-jinja')
+checkdepends=('systemd')
+provides=('libsystemd.so' 'libudev.so')
+options=('strip')
+source=("git+https://github.com/systemd/systemd-stable#tag=${_tag}"
+        "git+https://github.com/systemd/systemd#tag=v${_tag_name%.*}")
+sha512sums=('SKIP'
+            'SKIP')
+
+prepare() {
+  cd "$_pkgbasename-stable"
+
+  # add upstream repository for cherry-picking
+  git remote add -f upstream ../systemd
+}
+
+build() {
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+  export PKG_CONFIG_LIBDIR="/usr/${CHOST}/lib/pkgconfig"
+
+  local _timeservers=({0..3}.arch.pool.ntp.org)
+  local _nameservers=(
+    # We use these public name services, ordered by their
+    # privacy policy (hopefully):
+    #  * Cloudflare (https://1.1.1.1/)
+    #  * Quad9 (https://www.quad9.net/)
+    #  * Google (https://developers.google.com/speed/public-dns/)
+    '1.1.1.1#cloudflare-dns.com'
+    '9.9.9.9#dns.quad9.net'
+    '8.8.8.8#dns.google'
+    '2606:4700:4700::1111#cloudflare-dns.com'
+    '2620:fe::9#dns.quad9.net'
+    '2001:4860:4860::8888#dns.google'
+  )
+ 
+  local _meson_options=(
+    --prefix /usr/${CHOST}
+
+    # internal version comparison is incompatible with pacman:
+    #   249~rc1 < 249 < 249.1 < 249rc
+    -Dversion-tag="${_tag_name/-/\~}-${pkgrel}-arch"
+    -Dshared-lib-tag="${pkgver}-${pkgrel}"
+    -Dmode=release
+    -D tests=false
+
+    # components & features
+    -Dapparmor=false
+    -Daudit=false
+    -Dbacklight=false
+    -Dbinfmt=false
+    -Dblkid=false
+    -Dbootloader=false
+    -Dbpf-framework=false
+    -Dcoredump=false
+    -Dcreate-log-dirs=false
+    -Defi=false
+    -Denvironment-d=false
+    -Dfirstboot=false
+    -Dhibernate=false
+    -Dhomed=false
+    -Dhostnamed=false
+    -Dhtml=false
+    -Dhwdb=false
+    -Dima=false
+    -Dimportd=false
+    -Dkmod=false
+    -Dldconfig=false
+    -Dlibcryptsetup=false
+    -Dlibcryptsetup-plugins=false
+    -Dlibfido2=false
+    -Dlibidn2=true
+    -Dlibiptc=false
+    -Dlocaled=false
+    -Dlogind=false
+    -Dlz4=false
+    -Dmachined=false
+    -Dmachined=true
+    -Dman=false
+    -Dmicrohttpd=false
+    -Dnetworkd=false
+    -Dnss-myhostname=true
+    -Dnss-mymachines=true
+    -Dnss-resolve=true
+    -Dnss-systemd=true
+    -Doomd=false
+    -Dpam=false
+    -Dpasswdqc=false
+    -Dportabled=false
+    -Dpstore=false
+    -Dpwquality=false
+    -Dqrencode=false
+    -Dquotacheck=false
+    -Drandomseed=false
+    -Dremote=false
+    -Drepart=false
+    -Dresolve=false
+    -Dresolve=true
+    -Drfkill=false
+    -Dseccomp=false
+    -Dselinux=false
+    -Dsysext=false
+    -Dsysusers=false
+    -Dtimedated=false
+    -Dtimesyncd=false
+    -Dtmpfiles=false
+    -Dtpm2=false
+    -Dtpm=false
+    -Dtranslations=false
+    -Dukify=false
+    -Duserdb=false
+    -Dutmp=false
+    -Dvconsole=false
+    -Dxdg-autostart=false
+    -Dxenctrl=false
+    -Dxkbcommon=false
+
+    -Ddbuspolicydir=/usr/share/dbus-1/system.d
+    -Ddefault-hierarchy=unified
+    -Ddefault-kill-user-processes=false
+    -Ddefault-locale='C.UTF-8'
+    -Dfallback-hostname='archlinux'
+    -Dnologin-path=/usr/bin/nologin
+    -Dntp-servers="${_timeservers[*]}"
+    -Ddns-servers="${_nameservers[*]}"
+    -Drpmmacrosdir=no
+    -Dsysvinit-path=
+    -Dsysvrcnd-path=
+  )
+
+  # this uses malloc_usable_size, which is incompatible with fortification level 3
+  export CFLAGS="${CFLAGS/_FORTIFY_SOURCE=3/_FORTIFY_SOURCE=2}"
+  export CXXFLAGS="${CXXFLAGS/_FORTIFY_SOURCE=3/_FORTIFY_SOURCE=2}"
+
+  arch-meson "$_pkgbasename-stable" build "${_meson_options[@]}"
+
+  meson compile -C build
+}
+
+check() {
+  meson test -C build
+}
+
+package() {
+  meson install -C build --destdir "$pkgdir"
+
+  rm -rf "${pkgdir}"/{etc,var,usr/share}
+  rm -rf "${pkgdir}"/usr/arm-linux-gnueabihf/{etc,bin,share}
+}

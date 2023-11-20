@@ -1,0 +1,20 @@
+[binaries]
+c = 'arm-linux-gnueabihf-gcc'
+cpp = 'arm-linux-gnueabihf-g++'
+rust = ['rustc', '--target', 'arm-unknown-linux-gnueabihf']
+pkg-config = 'pkg-config'
+# cups-config = 'cups-config'
+llvm-config = '/usr/arm-linux-gnueabihf/bin/llvm-config'
+strip = 'arm-linux-gnueabihf-strip'
+
+[properties]
+pkg_config_libdir = '/usr/arm-linux-gnueabihf/lib/pkgconfig'
+
+[host_machine]
+system = 'linux'
+subsystem = 'linux'
+kernel = 'linux'
+cpu_family = 'arm'
+cpu = 'Cortex-A55'
+endian = 'little'
+

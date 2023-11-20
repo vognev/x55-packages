@@ -1,0 +1,74 @@
+# Maintainer: $USER
+
+_pkgbasename=krb5
+pkgname=lib32-${_pkgbasename}
+_pkgvermajor=1.21
+pkgver=1.21.2
+pkgrel=1
+pkgdesc='The Kerberos network authentication system (32-bit)'
+url='https://web.mit.edu/kerberos/'
+arch=('aarch64')
+license=('custom')
+depends=('lib32-sysroot' 'lib32-e2fsprogs' 'lib32-libldap' 'lib32-keyutils' "${_pkgbasename}")
+makedepends=('perl')
+provides=(
+  libgssapi_krb5.so
+  libgssrpc.so
+  libk5crypto.so
+  libkadm5clnt_mit.so
+  libkadm5srv_mit.so
+  libkdb5.so
+  libkdb_ldap.so
+  libkrad.so
+  libkrb5.so
+  libkrb5support.so
+  libverto.so
+)
+options=('!emptydirs')
+source=(https://web.mit.edu/kerberos/dist/krb5/${_pkgvermajor}/${_pkgbasename}-${pkgver}.tar.gz)
+sha512sums=('4e09296b412383d53872661718dbfaa90201e0d85f69db48e57a8d4bd73c95a90c7ec7b6f0f325f6bc967f8d203b256b071c0191facf080aca0e2caec5d0ac49')
+
+prepare() {
+   cd ${_pkgbasename}-${pkgver}
+
+  # FS#25384
+  sed -i "/KRB5ROOT=/s/\/local//" src/util/ac_check_krb5.m4
+}
+
+build() {
+   cd "${srcdir}/${_pkgbasename}-${pkgver}/src"
+
+   export PKG_CONFIG_PATH='/usr/arm-linux-gnueabihf/lib/pkgconfig'
+   export CHOST=arm-linux-gnueabihf
+   export CFLAGS="${CFLAGS32}"
+   export CXXFLAGS="${CXXFLAGS32}"
+   export CROSS_COMPILE=$CHOST
+   export CC="${CHOST}-gcc"
+   export CXX="${CHOST}-g++"
+
+   export CFLAGS+=" -fPIC -fno-strict-aliasing -fstack-protector-all"
+   export CPPFLAGS+=" -I/usr/${CHOST}/include/et"
+
+   ./configure --prefix=/usr/${CHOST} \
+               --sysconfdir=/etc \
+               --localstatedir=/var/lib \
+               --libdir=/usr/${CHOST}/lib \
+               --enable-shared \
+               --with-system-et \
+               --with-system-ss \
+               --disable-rpath \
+               --without-tcl \
+               --enable-dns-for-realm \
+               --with-ldap \
+               --without-system-verto
+   make
+}
+
+package() {
+   cd ${_pkgbasename}-${pkgver}/src
+   make DESTDIR="${pkgdir}" install
+
+   rm -rf "${pkgdir}"/usr/arm-linux-gnueabihf/{share,bin,sbin}
+}
+
+# vim: ts=2 sw=2 et:

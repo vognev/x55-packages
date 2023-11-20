@@ -1,0 +1,44 @@
+# Maintainer: $USER
+
+_pkgbasename=libdrm
+pkgname=lib32-$_pkgbasename
+pkgver=2.4.119
+pkgrel=1
+pkgdesc="Userspace interface to kernel DRM services (32-bit)"
+url="https://dri.freedesktop.org/"
+arch=(aarch64)
+license=('custom')
+depends=('lib32-libpciaccess' 'lib32-sysroot' $_pkgbasename)
+makedepends=('meson')
+checkdepends=('lib32-cairo')
+source=(https://dri.freedesktop.org/${_pkgbasename}/${_pkgbasename}-${pkgver}.tar.xz)
+sha512sums=('c8dd7665e85c01a67fcce1c1c614bc05a3ec311f31cae7de5fb1cd27d0f11f1801be63de3fa3e33b2f505544fd4b1bc292965c5e8de46a3beaaedb10334945ca')
+
+prepare() {
+  cd $_pkgbasename-$pkgver
+}
+
+build() {
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+  export PKG_CONFIG_LIBDIR="/usr/${CHOST}/lib/pkgconfig"
+
+  arch-meson $_pkgbasename-$pkgver build \
+    --prefix=/usr/${CHOST} \
+    --libdir=/usr/${CHOST}/lib \
+    -Dudev=false \
+    -Dman-pages=disabled \
+    -Detnaviv=disabled \
+    -Dfreedreno=disabled \
+    -Dvc4=disabled \
+    -Dvalgrind=disabled
+  meson compile -C build
+}
+
+package() {
+  meson install -C build --destdir "$pkgdir"
+  rm -r "${pkgdir}"/usr/arm-linux-gnueabihf/share
+}

@@ -1,0 +1,36 @@
+# Maintainer: $USER
+
+pkgname=lib32-xcb-proto
+pkgver=1.16.0
+pkgrel=1
+pkgdesc="XML-XCB protocol descriptions"
+arch=(aarch64)
+url="https://xcb.freedesktop.org/"
+license=('custom')
+makedepends=('python' 'libxml2')
+source=(https://xorg.freedesktop.org/archive/individual/proto/xcb-proto-$pkgver.tar.xz)
+sha512sums=('54906f379a7aa2cbbfbbe54764c02dbf522ca8f6c54e07d4faae471aac3aee25d0359be38c808c8da887de228aed745582a78b2f56714b023bca8f3513b24972')
+
+build() {
+  cd xcb-proto-$pkgver
+
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+  export PKG_CONFIG_LIBDIR="/usr/${CHOST}/lib/pkgconfig"
+
+  ./configure --prefix=/usr/${CHOST}
+  make
+}
+
+package() {
+  cd xcb-proto-$pkgver
+  make DESTDIR="$pkgdir" install
+
+  rm -r "$pkgdir"/usr/arm-linux-gnueabihf/lib/python*
+
+  # move in place
+  mv "$pkgdir"/usr/arm-linux-gnueabihf/share/pkgconfig "$pkgdir"/usr/arm-linux-gnueabihf/lib
+}

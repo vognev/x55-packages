@@ -1,0 +1,97 @@
+# Maintainer: $USER
+
+pkgbase=lib32-glib2
+pkgname=(
+  lib32-glib2
+)
+pkgver=2.78.3
+pkgrel=1
+pkgdesc="Low level core library - 32-bit"
+url="https://gitlab.gnome.org/GNOME/glib"
+license=(LGPL)
+arch=(aarch64)
+depends=(
+  lib32-sysroot
+  glib2
+  lib32-libffi
+  lib32-pcre2
+  lib32-util-linux
+  lib32-zlib
+)
+makedepends=(
+  gettext
+  git
+  gtk-doc
+  lib32-dbus
+  lib32-libelf
+  meson
+  python
+  shared-mime-info
+  util-linux
+)
+checkdepends=(
+  desktop-file-utils
+  lib32-glib2
+)
+options=()
+_commit=03f7c1fbf3a3784cb4c3604f83ca3645e9225577  # tags/2.78.3^0
+source=(
+  "git+https://gitlab.gnome.org/GNOME/glib.git#commit=$_commit"
+  "git+https://gitlab.gnome.org/GNOME/gvdb.git"
+  gio-querymodules-32.hook
+)
+b2sums=('SKIP'
+        'SKIP'
+        '678ea2d010fd64b6c55106510096363c54c357d65615c666e9cc3a0e280c0878257a45e646dd88f6bdd0623f7268c4afd2d4f98f82a5489bbfc028c5864252f1')
+
+pkgver() {
+  cd glib
+  git describe --tags | sed 's/[^-]*-g/r&/;s/-/+/g'
+}
+
+prepare() {
+  cd glib
+
+  git submodule init
+  git submodule set-url subprojects/gvdb "$srcdir/gvdb"
+  git -c protocol.file.allow=always submodule update
+}
+
+build() {
+  export PKG_CONFIG_PATH='/usr/arm-linux-gnueabihf/lib/pkgconfig'
+  export CHOST=arm-linux-gnueabihf
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CROSS_COMPILE=$CHOST
+  
+  local meson_options=(
+    --prefix=/usr/${CHOST}
+    --cross-file arm32
+    -D glib_debug=disabled
+    -D tests=false
+    -D gtk_doc=false
+    -D man=false
+    -D selinux=disabled
+    -D sysprof=disabled
+  )
+
+  arch-meson glib build "${meson_options[@]}"
+  meson compile -C build
+}
+
+package_lib32-glib2() {
+  depends+=(
+    libffi.so
+    libmount.so
+  )
+  provides+=(libg{lib,io,module,object,thread}-2.0.so)
+
+  meson install -C build --destdir "$pkgdir"
+
+  rm -r "$pkgdir"/usr/arm-linux-gnueabihf/share
+  #find "$pkgdir/usr/arm-linux-gnueabihf/bin" -type f -not -name gio-querymodules -printf 'Removing %P\n' -delete
+  #mv "$pkgdir"/usr/arm-linux-gnueabihf/bin/gio-querymodules{,-32}
+  touch "$pkgdir/usr/arm-linux-gnueabihf/lib/gio/modules/.keep"
+}
+
+# vim:set sw=2 sts=-1 et:

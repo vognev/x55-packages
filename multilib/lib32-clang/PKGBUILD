@@ -1,0 +1,99 @@
+# Maintainer: $USER
+
+pkgname=lib32-clang
+pkgver=16.0.6
+pkgrel=1
+pkgdesc="C language family frontend for LLVM (32-bit)"
+arch=('aarch64')
+url="https://clang.llvm.org/"
+license=('custom:Apache 2.0 with LLVM Exception')
+depends=('lib32-llvm-libs' 'lib32-sysroot')
+makedepends=('lib32-llvm' 'cmake' 'ninja' 'python')
+_source_base=https://github.com/llvm/llvm-project/releases/download/llvmorg-$pkgver
+source=($_source_base/clang-$pkgver.src.tar.xz
+        $_source_base/llvm-$pkgver.src.tar.xz
+        $_source_base/cmake-$pkgver.src.tar.xz
+        $_source_base/third-party-$pkgver.src.tar.xz
+        enable-fstack-protector-strong-by-default.patch)
+sha256sums=('1186b6e6eefeadd09912ed73b3729e85b59f043724bb2818a95a2ec024571840'
+            'e91db44d1b3bb1c33fcea9a7d1f2423b883eaa9163d3d56ca2aa6d2f0711bc29'
+            '39d342a4161095d2f28fb1253e4585978ac50521117da666e2b1f6f28b62f514'
+            '15f5b9aeeba938530af977d5f9205612737a091a7f0f6c8075df8723b7713f70'
+            '45da5783f4e89e4507a351ed0ffbbe6ec240e21ff7070797a89c5ccf434ac612')
+
+# Utilizing LLVM_DISTRIBUTION_COMPONENTS to avoid
+# installing static libraries; inspired by Gentoo
+_get_distribution_components() {
+  local target
+  ninja -t targets | grep -Po 'install-\K.*(?=-stripped:)' | while read -r target; do
+    case $target in
+      clang-libraries|distribution)
+        continue
+        ;;
+      clang-tidy-headers)
+        continue
+        ;;
+      clang|clangd|clang-*)
+        ;;
+      clang*|findAllSymbols|scan-build-py)
+        continue
+        ;;
+    esac
+    echo $target
+  done
+}
+
+prepare() {
+  rename -v -- "-$pkgver.src" '' {cmake,third-party}-$pkgver.src
+  cd clang-$pkgver.src
+  mkdir build
+  patch -Np2 -i ../enable-fstack-protector-strong-by-default.patch
+}
+
+build() {
+  cd "$srcdir/clang-$pkgver.src/build"
+
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+  export PKG_CONFIG_LIBDIR="/usr/${CHOST}/lib/pkgconfig"
+
+  local cmake_args=(
+    -G Ninja
+    -DCMAKE_BUILD_TYPE=Release
+    -DCMAKE_INSTALL_PREFIX=/usr/${CHOST}
+    -DCMAKE_PREFIX_PATH=/usr/${CHOST}
+    -DCMAKE_SKIP_RPATH=ON
+    -DCLANG_DEFAULT_PIE_ON_LINUX=ON
+    -DCLANG_LINK_CLANG_DYLIB=ON
+    -DENABLE_LINKER_BUILD_ID=ON
+    -DLLVM_BUILD_DOCS=OFF
+    -DLLVM_BUILD_TESTS=OFF
+    -DLLVM_CONFIG="/usr/${CHOST}bin/llvm-config"
+    -DLLVM_ENABLE_RTTI=ON
+    -DLLVM_ENABLE_SPHINX=OFF
+    -DLLVM_EXTERNAL_LIT=/usr/${CHOST}bin/lit
+    -DLLVM_INCLUDE_DOCS=OFF
+    -DLLVM_LINK_LLVM_DYLIB=ON
+    -DLLVM_MAIN_SRC_DIR="$srcdir/llvm-$pkgver.src"
+  )
+
+  cmake .. "${cmake_args[@]}"
+  local distribution_components=$(_get_distribution_components | paste -sd\;)
+  test -n "$distribution_components"
+  cmake_args+=(-DLLVM_DISTRIBUTION_COMPONENTS="$distribution_components")
+
+  cmake .. "${cmake_args[@]}"
+  ninja
+}
+
+package() {
+  cd clang-$pkgver.src/build
+
+  DESTDIR="$pkgdir" ninja install-distribution
+  #rm -rf "$pkgdir"/usr/{bin,include,lib,libexec,share}
+}
+
+# vim:set ts=2 sw=2 et:

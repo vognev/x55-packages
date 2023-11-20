@@ -1,0 +1,41 @@
+# Maintainer: $USER
+
+_pkgbasename=libxau
+pkgname=lib32-$_pkgbasename
+pkgver=1.0.11
+pkgrel=1
+pkgdesc="X11 authorisation library (32-bit)"
+arch=(aarch64)
+url="https://xorg.freedesktop.org/"
+license=('custom')
+depends=('lib32-sysroot' $_pkgbasename)
+makedepends=('pkgconf' 'lib32-xorgproto')
+provides=('libXau.so')
+source=(${url}/releases/individual/lib/libXau-${pkgver}.tar.xz)
+sha1sums=('0cf6d853fce4dc72d61c253d096408a313f1163b')
+sha256sums=('f3fa3282f5570c3f6bd620244438dbfbdd580fc80f02f549587a0f8ab329bbeb')
+
+build() {
+  cd "${srcdir}/libXau-${pkgver}"
+
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+  export PKG_CONFIG_LIBDIR="/usr/${CHOST}/lib/pkgconfig"
+
+  ./configure \
+    --prefix=/usr/${CHOST} \
+    --sysconfdir=/usr/${CHOST}/etc \
+    --libdir=/usr/${CHOST}/lib
+  make
+}
+
+package() {
+  cd "${srcdir}/libXau-${pkgver}"
+
+  make DESTDIR="${pkgdir}" install
+
+  rm -r "${pkgdir}"/usr/arm-linux-gnueabihf/share
+}

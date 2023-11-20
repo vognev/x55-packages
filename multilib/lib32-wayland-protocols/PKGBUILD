@@ -1,0 +1,46 @@
+# Maintainer: $USER
+
+pkgname=lib32-wayland-protocols
+pkgver=1.32
+pkgrel=1
+pkgdesc='Specifications of extended Wayland protocols'
+arch=('aarch64')
+url='https://wayland.freedesktop.org/'
+license=('MIT')
+makedepends=('lib32-wayland' 'meson' 'ninja')
+source=("https://gitlab.freedesktop.org/wayland/wayland-protocols/-/releases/$pkgver/downloads/wayland-protocols-$pkgver.tar.xz")
+sha256sums=('7459799d340c8296b695ef857c07ddef24c5a09b09ab6a74f7b92640d2b1ba11')
+
+prepare() {
+  cd wayland-protocols-$pkgver
+  # apply patch from the source array (should be a pacman feature)
+  local src
+  for src in "${source[@]}"; do
+    src="${src%%::*}"
+    src="${src##*/}"
+    [[ $src = *.patch ]] || continue
+    echo "Applying patch $src..."
+    patch -Np1 < "../$src"
+  done
+}
+
+build() {
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+  export PKG_CONFIG_LIBDIR="/usr/${CHOST}/lib/pkgconfig"
+
+  meson build wayland-protocols-$pkgver --buildtype=release --prefix=/usr/${CHOST}
+  ninja -C build
+}
+
+package() {
+  DESTDIR="$pkgdir" ninja -C build install
+  mkdir "$pkgdir"/usr/arm-linux-gnueabihf/lib
+  mv    "$pkgdir"/usr/arm-linux-gnueabihf/share/pkgconfig \
+        "$pkgdir"/usr/arm-linux-gnueabihf/lib/
+}
+
+# vim:set ts=2 sw=2 et:

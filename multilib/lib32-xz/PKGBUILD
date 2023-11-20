@@ -1,0 +1,40 @@
+# Contributor: Pierre Schmitz <pierre@archlinux.de>
+# Contributor: François Charette <firmicus@gmx.net>
+
+pkgname=lib32-xz
+pkgver=5.4.5
+pkgrel=1
+pkgdesc='Library and command line tools for XZ and LZMA compressed files (32-bit)'
+arch=('aarch64')
+url='https://tukaani.org/xz/'
+license=('GPL' 'LGPL' 'custom')
+depends=('lib32-sysroot' 'xz')
+provides=('liblzma.so')
+source=("https://tukaani.org/xz/xz-${pkgver}.tar.gz")
+sha512sums=('91f8f548c915de0ed79cee13ce0336b51c1cebf2eb142fa1efecfd07771c662c99cad3730540fcb712057ab274130e13b87960f6b4c62f0bd9477f27a303fb2b')
+
+build() {
+  cd "${srcdir}/xz-${pkgver}"
+
+  export PKG_CONFIG_PATH='/usr/arm-linux-gnueabihf/lib/pkgconfig'
+  export CHOST=arm-linux-gnueabihf
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CROSS_COMPILE=$CHOST
+  export CC="${CHOST}-gcc"
+
+  ./configure \
+    --prefix=/usr/${CHOST} \
+    --libdir=/usr/${CHOST}/lib \
+    --disable-rpath \
+    --enable-werror
+  make
+}
+
+package() {
+  cd "${srcdir}/xz-${pkgver}"
+
+  make DESTDIR="${pkgdir}" install
+
+  rm -rf "${pkgdir}"/usr/CHOST/{bin,share}
+}

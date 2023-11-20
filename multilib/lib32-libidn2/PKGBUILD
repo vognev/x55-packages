@@ -1,0 +1,43 @@
+# Maintainer: $USER
+
+pkgname=lib32-libidn2
+pkgver=2.3.4
+pkgrel=2
+pkgdesc='Free software implementation of IDNA2008, Punycode and TR46'
+url='https://www.gnu.org/software/libidn/#libidn2'
+arch=('aarch64')
+license=('GPL2' 'LGPL3')
+depends=('libidn2' 'lib32-sysroot' 'lib32-libunistring')
+makedepends=('gtk-doc' 'ruby-ronn-ng')
+source=(https://ftp.gnu.org/gnu/libidn/libidn2-${pkgver}.tar.gz)
+sha256sums=('93caba72b4e051d1f8d4f5a076ab63c99b77faee019b72b9783b267986dbb45f')
+
+prepare() {
+  cd libidn2-${pkgver}
+  autoreconf -fvi
+}
+
+build() {
+  cd libidn2-${pkgver}
+  
+  export PKG_CONFIG_PATH='/usr/arm-linux-gnueabihf/lib/pkgconfig'
+  export CHOST=arm-linux-gnueabihf
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CROSS_COMPILE=$CHOST
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+
+  ./configure \
+    --prefix=/usr/${CHOST} \
+    --libdir=/usr/${CHOST}/lib
+  make
+}
+
+package() {
+  cd libidn2-${pkgver}
+  make DESTDIR="${pkgdir}" install
+  rm -rf "${pkgdir}"/usr/arm-linux-gnueabihf/{bin,share}
+}
+
+# vim: ts=2 sw=2 et:

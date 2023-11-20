@@ -1,0 +1,48 @@
+# Maintainer: $USER
+
+pkgname=lib32-vulkan-icd-loader
+pkgver=1.3.274
+pkgrel=1
+arch=(aarch64)
+pkgdesc="Vulkan Installable Client Driver (ICD) Loader (32-bit)"
+url="https://www.khronos.org/vulkan/"
+license=('custom')
+makedepends=('cmake' 'python' 'lib32-libx11' 'lib32-libxrandr' 'lib32-wayland' 'lib32-vulkan-headers')
+depends=('lib32-sysroot')
+optdepends=('lib32-vulkan-driver: packaged vulkan driver')
+provides=('libvulkan.so')
+source=("vulkan-icd-loader-${pkgver}.tar.gz::https://github.com/KhronosGroup/Vulkan-Loader/archive/v${pkgver}.tar.gz")
+sha256sums=('8abdcc24fc320f811c24a6faab8bebc932c32d3024526d08e75e60cc36d0a811')
+
+build() {
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+  export PKG_CONFIG_LIBDIR="/usr/${CHOST}/lib/pkgconfig"
+
+  cd "${srcdir}"/Vulkan-Loader*
+
+  rm -rf build ; mkdir build ; cd build
+  cmake -DCMAKE_INSTALL_PREFIX=/usr/${CHOST} \
+    -DVULKAN_HEADERS_INSTALL_DIR=/usr/${CHOST} \
+    -DCMAKE_INSTALL_SYSCONFDIR=/etc \
+    -DCMAKE_INSTALL_LIBDIR=lib \
+    -DCMAKE_INSTALL_DATADIR=/share \
+    -DCMAKE_SKIP_RPATH=True \
+    -DBUILD_TESTS=Off \
+    -DBUILD_WSI_XCB_SUPPORT=On \
+    -DBUILD_WSI_XLIB_SUPPORT=On \
+    -DBUILD_WSI_WAYLAND_SUPPORT=On \
+    -DCMAKE_BUILD_TYPE=Release \
+    ..
+
+  make
+}
+
+package() {
+  cd "${srcdir}"/Vulkan-Loader*/build
+  
+  make DESTDIR="${pkgdir}" install
+}

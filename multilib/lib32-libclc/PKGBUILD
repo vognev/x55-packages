@@ -1,0 +1,43 @@
+# Maintainer: $USER
+
+pkgname=lib32-libclc
+pkgver=16.0.6
+pkgrel=1
+pkgdesc="Library requirements of the OpenCL C programming language"
+arch=('aarch64')
+url="https://libclc.llvm.org/"
+license=('MIT')
+makedepends=('clang' 'llvm' 'cmake' 'ninja' 'python' 'lib32-spirv-llvm-translator')
+_source_base=https://github.com/llvm/llvm-project/releases/download/llvmorg-$pkgver
+source=($_source_base/libclc-$pkgver.src.tar.xz)
+sha256sums=('61952af79c555d50bc88cb6f134d9abe9278f65dd34c2bc945cc3d324c2af224')
+
+prepare() {
+  cd libclc-$pkgver.src
+  mkdir build
+}
+
+build() {
+  cd libclc-$pkgver.src/build
+
+  export CFLAGS="${CFLAGS32}"
+  export CXXFLAGS="${CXXFLAGS32}"
+  export CHOST=arm-linux-gnueabihf
+  export CC="${CHOST}-gcc"
+  export CXX="${CHOST}-g++"
+  export PKG_CONFIG_LIBDIR="/usr/${CHOST}/lib/pkgconfig"
+
+  cmake .. -G Ninja \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=/usr/${CHOST} \
+    -DCMAKE_PREFIX_PATH=/usr/${CHOST}
+  ninja
+}
+
+package() {
+  cd libclc-$pkgver.src/build
+  DESTDIR="$pkgdir" ninja install
+  mkdir "$pkgdir"/usr/arm-linux-gnueabihf/lib
+  mv "$pkgdir"/usr/arm-linux-gnueabihf/share/pkgconfig \
+     "$pkgdir"/usr/arm-linux-gnueabihf/lib/
+}
