@@ -7,8 +7,8 @@ pkgname=(
     $pkgbase-headers
 )
 
-_basekernel=6.7
-pkgver=6.7.rc5.arch1
+_basekernel=6.8
+pkgver=6.8.rc1.arch1
 pkgrel=1
 pkgdesc='Linux X55'
 arch=(aarch64)
@@ -21,14 +21,12 @@ makedepends=(
 options=('!strip')
 
 source=(
-  https://git.kernel.org/torvalds/t/linux-6.7-rc5.tar.gz
+  https://git.kernel.org/torvalds/t/linux-6.8-rc1.tar.gz
   linux-x55.preset
-  6.7.patch
-  6.7.config
+  6.8.config
 )
 
 md5sums=(
-  'SKIP'
   'SKIP'
   'SKIP'
   'SKIP'
@@ -42,21 +40,19 @@ export ARCH=arm64
 DEVICE_DTB="rk3566-powkiddy-x55"
 
 prepare() {
-  cd "$srcdir/linux-6.7-rc5"
-
-  patch -p1 < ../6.7.patch
+  cd "$srcdir/linux-6.8-rc1"
 
   # don't run depmod on 'make install'. We'll do this ourselves in packaging
   sed -i '2iexit 0' scripts/depmod.sh
 
   # copy over config
-  cp ../6.7.config .config
+  cp ../6.8.config .config
   make olddefconfig
-  diff -u ../6.7.config .config || :
+  diff -u ../6.8.config .config || :
 }
 
 build() {
-  cd "$srcdir/linux-6.7-rc5"
+  cd "$srcdir/linux-6.8-rc1"
   make ${MAKEFLAGS} Image modules rockchip/$DEVICE_DTB.dtb
 }
 
@@ -72,16 +68,11 @@ package_linux-x55() {
     'linux-firmware: firmware images needed for some devices'
   )
   provides=(
-    KSMBD-MODULE
-    VIRTUALBOX-GUEST-MODULES
+    linux=${pkgver}
     WIREGUARD-MODULE
   )
-  replaces=(
-    virtualbox-guest-modules-arch
-    wireguard-arch
-  )
 
-  cd "$srcdir/linux-6.7-rc5"
+  cd "$srcdir/linux-6.8-rc1"
 
   local _version=$(make kernelrelease)
   local modulesdir="${pkgdir}/usr/lib/modules/${_version}"
@@ -107,12 +98,11 @@ package_linux-x55() {
 package_linux-x55-headers() {
   pkgdesc="Header files and scripts for building modules for linux kernel - ${_desc}"
   provides=("linux-headers=${pkgver}")
-  conflicts=('linux-headers')
   depends=(
     bc
   )
 
-  cd "$srcdir/linux-6.7-rc5"
+  cd "$srcdir/linux-6.8-rc1"
   local _version=$(make kernelrelease)
   local builddir="$pkgdir/usr/lib/modules/${_version}/build"
 
