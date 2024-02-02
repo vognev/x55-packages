@@ -1,5 +1,5 @@
 pkgname=remotepad
-pkgver=0.0.1
+pkgver=0.0.1.r3
 pkgrel=1
 pkgdesc='A tool for forwarding evdev inputs over ssh'
 arch=('any')
@@ -8,22 +8,26 @@ depends=(
     'python-evdev'
 )
 source=(
-    'remotepad-client.py'
-    'remotepad-server.py'
-    'powkiddy-mapper.py'
+    "remotepad::git+https://github.com/vognev/remotepad.git#branch=master"
 )
 sha256sums=(
     'SKIP'
-    'SKIP'
-    'SKIP'
 )
 
+pkgver() {
+    cd "$srcdir/remotepad"
+
+    echo "${pkgver}.r$(git rev-list HEAD --count)"
+}
+
 package() {
-    mkdir -p "${pkgdir}/usr/bin/"
+    mkdir -p "${pkgdir}/usr/bin/" "${pkgdir}/etc/systemd/system" "${pkgdir}/etc/udev/hwdb.d"
 
-    cp "$srcdir/remotepad-client.py" "${pkgdir}/usr/bin/remotepad-client"
-    cp "$srcdir/remotepad-server.py" "${pkgdir}/usr/bin/remotepad-server"
-    cp "$srcdir/powkiddy-mapper.py"  "${pkgdir}/usr/bin/powkiddy-mapper"
+    cp "$srcdir/remotepad/remotepad-client.py" "${pkgdir}/usr/bin/remotepad-client"
+    cp "$srcdir/remotepad/remotepad-server.py" "${pkgdir}/usr/bin/remotepad-server"
+    cp "$srcdir/remotepad/powkiddy-mapper.py"  "${pkgdir}/usr/bin/powkiddy-mapper"
 
+    cp "$srcdir/remotepad/powkiddy-mapper.service"  "${pkgdir}/etc/systemd/system"
+    cp "$srcdir/remotepad/hwdb.d/10-powkiddy-emumouse.hwdb" "${pkgdir}/etc/udev/hwdb.d"
     chmod +x "${pkgdir}/usr/bin/"{remotepad-client,remotepad-server,powkiddy-mapper}
 }
