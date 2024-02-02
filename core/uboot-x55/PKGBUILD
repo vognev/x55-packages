@@ -1,7 +1,7 @@
-# Maintainer: Vitaliy Ognev <vitaliy.ognev@gmail.com>
+# Maintainer: $USER
 
 pkgname=uboot-x55
-pkgver=v2017.09
+pkgver=v2024.01.rc4
 pkgrel=1
 pkgdesc='U-Boot X55'
 arch=(aarch64)
@@ -9,17 +9,17 @@ license=(GPL2)
 options=('!strip')
 
 makedepends=(
-  bc
-  parted
+  swig
+  python-pyelftools
 )
 
 source=(
-    u-boot::git+https://github.com/rockchip-linux/u-boot#commit=32640b0ada
+    u-boot::git+https://github.com/u-boot/u-boot.git#commit=27089f1e4d
     rk3566_ddr_1056MHz_v1.18.bin
     rk356x_spl_loader_v1.18.112.bin
     rk3568_bl31_v1.43.elf
     rk3568_bl32_v2.10.bin
-    x55-uboot.patch
+    powkiddy-x55.patch
 )
 
 md5sums=(
@@ -34,38 +34,35 @@ md5sums=(
 prepare() {
     cd "$srcdir/u-boot"
 
-    git apply "$srcdir/x55-uboot.patch"
+    git apply "$srcdir/powkiddy-x55.patch"
 
     LDFLAGS="" ARCH=arm64 make mrproper
-    LDFLAGS="" ARCH=arm64 make rk3568_defconfig
+    LDFLAGS="" ARCH=arm64 make powkiddy-x55-rk3566_defconfig
 }
 
 build() {
     cd "$srcdir/u-boot"
 
-    cp "$srcdir/rk3568_bl31_v1.43.elf" "bl31.elf"
-    cp "$srcdir/rk3568_bl32_v2.10.bin" "tee.bin"
+    export ROCKCHIP_TPL=../rk3566_ddr_1056MHz_v1.18.bin
+    export BL31=../rk3568_bl31_v1.43.elf
 
-    LDFLAGS="" ARCH=arm64 make u-boot.dtb u-boot.itb \
-        CONFIG_MKIMAGE_DTC_PATH="scripts/dtc/dtc"
+    LDFLAGS="--lssl -lcrypto"   ARCH=arm64 make spl/u-boot-spl.bin u-boot.dtb u-boot.img tools
+    LDFLAGS=""                  ARCH=arm64 make CONFIG_MKIMAGE_DTC_PATH="scripts/dtc/dtc"
+
+    tools/mkimage -n rk3568 -T rksd -d ../rk3566_ddr_1056MHz_v1.18.bin:../rk356x_spl_loader_v1.18.112.bin -C bzip2 idbloader.img
 }
 
 package() {
+    local dest="$pkgdir/usr/share/bootloader"
     cd "$srcdir/u-boot"
 
-    local dest="$pkgdir/usr/share/bootloader"
-    install -d $dest
-
-    tools/mkimage -n rk3568 -T rksd -d $srcdir/rk3566_ddr_1056MHz_v1.18.bin:$srcdir/rk356x_spl_loader_v1.18.112.bin -C bzip2 "$dest/idbloader.img"
-
-    install -t "$dest" u-boot.itb
-    install -d "$dest/extlinux"
-
-    cat << EOF > "$dest/extlinux/extlinux.conf"
+    install -d "$dest"
+    install -t "$dest" u-boot.itb idbloader.img
+    cat << EOF > "$dest/extlinux.conf"
 LABEL X55Arch
   LINUX /vmlinuz-linux-x55
   FDTDIR /
-  APPEND boot=UUID=@UUID_SYSTEM@ disk=UUID=@UUID_STORAGE@ quiet rootwait console=ttyUSB0,1500000 fbcon=rotate:3 console=tty0 ssh consoleblank=0 systemd.show_status=0 loglevel=0 panic=20
+  APPEND root=UUID=@@UUID_ROOT@@ rootwait rw initrd=/initramfs-linux-x55.img console=ttyS2,1500000 console=tty0 loglevel=7
 EOF
 
 }
